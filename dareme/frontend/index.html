@@ -1138,6 +1138,251 @@
 
   #toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* ── CAMERA SWITCH BTN ── */
+  .cam-switch-btn {
+    position: absolute;
+    bottom: 10px; right: 10px;
+    width: 30px; height: 30px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+    z-index: 10;
+    opacity: 0;
+  }
+  .video-box:hover .cam-switch-btn { opacity: 1; }
+  .cam-switch-btn:hover { background: rgba(0,229,255,0.3); border-color: var(--cyan); }
+
+  /* ── FILE MSG ── */
+  .file-msg {
+    align-self: flex-end;
+    background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 2px;
+    padding: 10px 14px;
+    font-size: 13px;
+    max-width: 85%;
+    animation: msgIn 0.25s ease both;
+  }
+  .file-msg.incoming { align-self: flex-start; background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.2); }
+  .file-msg-name { font-weight: 600; margin-bottom: 2px; color: var(--cyan); }
+  .file-msg.incoming .file-msg-name { color: #a855f7; }
+  .file-msg-size { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .file-msg-dl { display: inline-block; padding: 4px 12px; background: rgba(0,229,255,0.15); border: 1px solid rgba(0,229,255,0.3); border-radius: 2px; font-size: 11px; color: var(--cyan); cursor: pointer; text-decoration: none; letter-spacing: 1px; transition: all 0.2s; }
+  .file-msg-dl:hover { background: rgba(0,229,255,0.25); }
+  .file-progress { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .file-progress-fill { height: 100%; background: var(--cyan); border-radius: 2px; transition: width 0.3s; }
+
+  /* ── MODAL BASE ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(6,6,8,0.88); backdrop-filter: blur(14px); z-index: 400; align-items: center; justify-content: center; }
+  .modal-overlay.active { display: flex; }
+  .modal-card { width: min(480px, 92vw); background: var(--panel); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; animation: cardIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+  .modal-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--surface); }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex: 1; }
+  .modal-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s; }
+  .modal-close:hover { color: var(--neon); }
+  .modal-body { padding: 22px; }
+
+  /* ── ROOM MODAL ── */
+  .room-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 20px; }
+  .room-tab { padding: 11px; background: var(--surface); border: none; color: var(--muted); font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; }
+  .room-tab.active { background: rgba(255,45,107,0.12); color: var(--neon); border-bottom: 2px solid var(--neon); }
+  .room-tab:hover:not(.active) { color: var(--text); }
+  .room-panel { display: none; }
+  .room-panel.active { display: block; }
+  .room-code-display { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px; text-align: center; margin-bottom: 14px; }
+  .room-code-label { font-size: 10px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .room-code-val { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 10px; background: linear-gradient(135deg, var(--cyan), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .room-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 12px 16px; color: var(--text); font-family: 'Courier Prime', monospace; font-size: 20px; letter-spacing: 6px; text-align: center; outline: none; text-transform: uppercase; margin-bottom: 14px; transition: border-color 0.2s; }
+  .room-input:focus { border-color: var(--cyan); }
+  .room-input::placeholder { color: var(--muted); letter-spacing: 3px; font-size: 14px; }
+  .room-action-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--neon), var(--neon2)); border: none; border-radius: 4px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 3px; color: #fff; cursor: pointer; transition: all 0.2s; }
+  .room-action-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,45,107,0.35); }
+  .room-copy-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font-size: 13px; cursor: pointer; margin-bottom: 10px; letter-spacing: 1px; transition: all 0.2s; }
+  .room-copy-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* ── SAVE FRIEND BAR ── */
+  .save-friend-bar { padding: 10px 14px; background: rgba(0,255,136,0.06); border-top: 1px solid rgba(0,255,136,0.15); display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--green); flex-shrink: 0; }
+  .save-friend-bar button { margin-left: auto; padding: 4px 12px; background: rgba(0,255,136,0.15); border: 1px solid rgba(0,255,136,0.3); color: var(--green); font-size: 11px; border-radius: 2px; cursor: pointer; letter-spacing: 1px; transition: all 0.2s; }
+  .save-friend-bar button:hover { background: rgba(0,255,136,0.25); }
+
+  /* ── FRIENDS LIST ── */
+  .friend-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .friend-item:last-child { border-bottom: none; }
+  .friend-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--neon), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .friend-info { flex: 1; }
+  .friend-name { font-size: 13px; font-weight: 500; }
+  .friend-code { font-family: 'Courier Prime', monospace; font-size: 11px; color: var(--muted); }
+  .friend-invite-btn { padding: 5px 12px; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.2); color: var(--green); font-size: 11px; border-radius: 2px; cursor: pointer; letter-spacing: 1px; transition: all 0.2s; }
+  .friend-invite-btn:hover { background: rgba(0,255,136,0.2); }
+  .empty-friends { text-align: center; color: var(--muted); font-size: 13px; padding: 24px 0; }
+
+  /* ── LANDING ROOM SECTION ── */
+  .landing-room-section {
+    margin-top: 28px;
+    animation: fadeUp 0.8s 0.5s ease both;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .landing-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .landing-divider::before,
+  .landing-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .landing-room-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .landing-room-btn {
+    padding: 12px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .landing-room-btn .btn-icon { font-size: 20px; }
+  .landing-room-btn .btn-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+  .landing-room-btn.create:hover { border-color: var(--neon); background: rgba(255,45,107,0.07); }
+  .landing-room-btn.join:hover   { border-color: var(--cyan); background: rgba(0,229,255,0.07); }
+  .landing-room-btn.group:hover  { border-color: #a855f7; background: rgba(168,85,247,0.07); }
+  .landing-room-btn.friends:hover{ border-color: var(--green); background: rgba(0,255,136,0.07); }
+
+  /* ── HOME LANDING ROOM INLINE PANEL ── */
+  .landing-inline-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 10px;
+    animation: fadeUp 0.25s ease both;
+  }
+
+  .landing-inline-panel.open { display: block; }
+
+  .landing-code-display {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .landing-code-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    letter-spacing: 10px;
+    background: linear-gradient(135deg, var(--cyan), #fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+  }
+
+  .landing-code-hint { font-size: 11px; color: var(--muted); letter-spacing: 2px; margin-top: 4px; }
+
+  .landing-panel-btn {
+    width: 100%;
+    padding: 11px;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .landing-panel-btn.neon { background: linear-gradient(135deg, var(--neon), var(--neon2)); }
+  .landing-panel-btn.cyan { background: linear-gradient(135deg, var(--cyan), #0099bb); color: #000; }
+  .landing-panel-btn.purple { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+
+  .landing-panel-btn:hover { transform: translateY(-1px); opacity: 0.92; }
+
+  /* ── GROUP INVITE BAR (in chat) ── */
+  .group-invite-bar {
+    padding: 10px 14px;
+    background: rgba(168,85,247,0.07);
+    border-top: 1px solid rgba(168,85,247,0.2);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: #a855f7;
+    flex-shrink: 0;
+  }
+
+  .group-invite-bar.show { display: flex; }
+
+  .group-invite-bar button {
+    margin-left: auto;
+    padding: 4px 12px;
+    background: rgba(168,85,247,0.15);
+    border: 1px solid rgba(168,85,247,0.3);
+    color: #a855f7;
+    font-size: 11px;
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .group-invite-bar button:hover { background: rgba(168,85,247,0.25); }
+
+  .group-invite-bar .decline-btn {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--muted);
+    margin-left: 6px;
+  }
+
+  /* ── EXIT CHAT BTN in topbar ── */
+  .exit-btn {
+    width: 34px; height: 34px;
+    background: rgba(255,45,107,0.1);
+    border: 1px solid rgba(255,45,107,0.25);
+    border-radius: 4px;
+    color: var(--neon);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin-right: 4px;
+  }
+  .exit-btn:hover { background: rgba(255,45,107,0.2); }
+
   /* Responsive */
   @media (max-width: 768px) {
     .chat-layout {
@@ -1188,9 +1433,67 @@
 
   <button class="start-btn" onclick="startMatching()">FIND A STRANGER</button>
 
+  <!-- Room section on landing -->
+  <div class="landing-room-section">
+    <div class="landing-divider">or choose a room</div>
+    <div class="landing-room-btns">
+      <button class="landing-room-btn create" onclick="toggleLandingPanel('create')">
+        <span class="btn-icon">🔒</span>
+        <span>Private Room</span>
+        <span class="btn-label">CREATE</span>
+      </button>
+      <button class="landing-room-btn join" onclick="toggleLandingPanel('join')">
+        <span class="btn-icon">🚪</span>
+        <span>Join Room</span>
+        <span class="btn-label">ENTER CODE</span>
+      </button>
+      <button class="landing-room-btn group" onclick="toggleLandingPanel('group')">
+        <span class="btn-icon">👥</span>
+        <span>Group Room</span>
+        <span class="btn-label">UP TO 4</span>
+      </button>
+      <button class="landing-room-btn friends" onclick="openFriendsModal()">
+        <span class="btn-icon">💚</span>
+        <span>Friends</span>
+        <span class="btn-label">SAVED</span>
+      </button>
+    </div>
+
+    <!-- Create private room inline panel -->
+    <div class="landing-inline-panel" id="panel-create">
+      <div class="landing-code-display">
+        <span class="landing-code-val" id="landingCreateCode">------</span>
+        <div class="landing-code-hint">Share this code with your friend</div>
+      </div>
+      <button class="landing-panel-btn cyan" onclick="copyLandingCode('create')">📋 COPY CODE</button>
+      <button class="landing-panel-btn neon" onclick="landingCreateRoom()">CREATE & WAIT</button>
+    </div>
+
+    <!-- Join room inline panel -->
+    <div class="landing-inline-panel" id="panel-join">
+      <input class="room-input" id="landingJoinInput" placeholder="ENTER CODE" maxlength="6"
+        style="margin-bottom:10px;" oninput="this.value=this.value.toUpperCase()"/>
+      <button class="landing-panel-btn cyan" onclick="landingJoinRoom()">JOIN ROOM →</button>
+    </div>
+
+    <!-- Group room inline panel -->
+    <div class="landing-inline-panel" id="panel-group">
+      <div class="landing-code-display">
+        <span class="landing-code-val" id="landingGroupCode">------</span>
+        <div class="landing-code-hint">Share with up to 3 friends</div>
+      </div>
+      <button class="landing-panel-btn cyan" onclick="copyLandingCode('group')">📋 COPY CODE</button>
+      <button class="landing-panel-btn purple" onclick="landingCreateGroupRoom()">CREATE GROUP →</button>
+      <div style="text-align:center;color:var(--muted);font-size:11px;letter-spacing:2px;margin:10px 0;">— JOIN EXISTING —</div>
+      <input class="room-input" id="landingGroupJoinInput" placeholder="GROUP CODE" maxlength="6"
+        style="margin-bottom:8px;" oninput="this.value=this.value.toUpperCase()"/>
+      <button class="landing-panel-btn purple" onclick="landingJoinGroupRoom()">JOIN GROUP →</button>
+    </div>
+  </div>
+
   <div class="stats-row">
     <div class="stat">
-      <div class="stat-num" id="onlineCount">4,219</div>
+      <div class="stat-num" id="onlineCount">0</div>
       <div class="stat-lbl">Online Now</div>
     </div>
     <div class="stat">
@@ -1220,6 +1523,7 @@
     <div class="live-badge"><span class="live-dot"></span> LIVE</div>
     <div class="vibe-badge chill" id="topVibeBadge">🟢 CHILL</div>
     <div class="timer-badge" id="timerDisplay">00:00</div>
+    <button class="exit-btn" onclick="exitToHome()" title="Exit to Home">🏠</button>
     <button class="report-btn" onclick="reportUser()" title="Report">⚑</button>
   </div>
 
@@ -1235,6 +1539,7 @@
         </div>
         <div class="video-label">YOU</div>
         <button class="fs-btn" onclick="openFullscreen('local')" title="Fullscreen">&#x26F6;</button>
+        <button class="cam-switch-btn" onclick="switchCamera()" title="Switch Camera">🔄</button>
       </div>
       <div class="video-box">
         <div class="cam-off-placeholder" id="remotePlaceholder" style="display:flex;">
@@ -1251,7 +1556,10 @@
     <div class="video-controls">
       <button class="ctrl-btn" id="micBtn" onclick="toggleMic()" title="Toggle Mic">🎤</button>
       <button class="ctrl-btn" id="vidBtn" onclick="toggleVideo()" title="Toggle Camera">📷</button>
+      <button class="ctrl-btn" onclick="triggerFileSend()" title="Send File">📁</button>
+      <button class="ctrl-btn" onclick="openFriendsModal()" title="Saved Friends">👥</button>
       <button class="td-btn" onclick="openTD()">🎲 TRUTH OR DARE</button>
+      <button class="ctrl-btn" onclick="openRoomModal()" title="Private/Group Room" style="border-color:rgba(168,85,247,0.4);color:#a855f7;">🚪</button>
       <button class="next-btn" onclick="nextStranger()">NEXT ▸</button>
     </div>
 
@@ -1262,6 +1570,15 @@
         <button class="chat-expand-btn" onclick="openExpandedChat()" title="Expand Chat">&#x2922;</button>
       </div>
       <div id="messages"></div>
+      <div class="group-invite-bar" id="groupInviteBar">
+        👥 Invite this stranger to a group?
+        <button onclick="sendGroupInvite()">INVITE</button>
+        <button class="decline-btn" onclick="dismissGroupInvite()">✕</button>
+      </div>
+      <div class="save-friend-bar" id="saveFriendBar" style="display:none;">
+        💚 Save this stranger as friend?
+        <button onclick="saveCurrentFriend()">SAVE</button>
+      </div>
       <div class="chat-input-area">
         <textarea class="chat-input" id="chatInput" placeholder="Say something..." rows="1"
           onkeydown="handleKey(event)"></textarea>
@@ -1330,6 +1647,66 @@
   </div>
 </div>
 
+<!-- ══════════════ PRIVATE / GROUP ROOM MODAL ══════════════ -->
+<div class="modal-overlay" id="roomModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span class="modal-title">🚪 ROOMS</span>
+      <button class="modal-close" onclick="closeModal('roomModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="room-tabs">
+        <button class="room-tab active" onclick="switchRoomTab('private', this)">🔒 PRIVATE</button>
+        <button class="room-tab" onclick="switchRoomTab('group', this)">👥 GROUP (4)</button>
+      </div>
+
+      <!-- Private Room Panel -->
+      <div class="room-panel active" id="panel-private">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px;letter-spacing:1px;">Create a private room and share the code with friends. No login needed.</div>
+        <div class="room-code-display">
+          <div class="room-code-label">Your Room Code</div>
+          <div class="room-code-val" id="privateRoomCode">----</div>
+        </div>
+        <button class="room-copy-btn" onclick="copyRoomCode('private')">📋 COPY CODE</button>
+        <button class="room-action-btn" onclick="createAndJoinPrivateRoom()">CREATE & JOIN ROOM</button>
+        <div style="text-align:center;color:var(--muted);font-size:12px;margin:14px 0;">— OR JOIN EXISTING —</div>
+        <input class="room-input" id="joinPrivateCodeInput" placeholder="ENTER CODE" maxlength="6"/>
+        <button class="room-action-btn" style="background:linear-gradient(135deg,var(--cyan),#0099bb);margin-top:-4px;" onclick="joinPrivateRoom()">JOIN ROOM</button>
+      </div>
+
+      <!-- Group Room Panel -->
+      <div class="room-panel" id="panel-group">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px;letter-spacing:1px;">Create a group video room for up to 4 people. Share the code with your friends.</div>
+        <div class="room-code-display">
+          <div class="room-code-label">Group Room Code</div>
+          <div class="room-code-val" id="groupRoomCode">----</div>
+        </div>
+        <button class="room-copy-btn" onclick="copyRoomCode('group')">📋 COPY CODE</button>
+        <button class="room-action-btn" onclick="createAndJoinGroupRoom()">CREATE GROUP ROOM</button>
+        <div style="text-align:center;color:var(--muted);font-size:12px;margin:14px 0;">— OR JOIN EXISTING —</div>
+        <input class="room-input" id="joinGroupCodeInput" placeholder="ENTER CODE" maxlength="6"/>
+        <button class="room-action-btn" style="background:linear-gradient(135deg,#a855f7,#7c3aed);margin-top:-4px;" onclick="joinGroupRoom()">JOIN GROUP</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ FRIENDS MODAL ══════════════ -->
+<div class="modal-overlay" id="friendsModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span class="modal-title" style="color:var(--green);">👥 SAVED FRIENDS</span>
+      <button class="modal-close" onclick="closeModal('friendsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="friendsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- hidden file input -->
+<input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)"/>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -1351,7 +1728,7 @@
 // ══════════════════════════════════════
 // CONFIG — Replace with your Render URL after deploy
 // ══════════════════════════════════════
-const SERVER_URL = 'https://dareme-backend.onrender.com'; // ← CHANGE THIS after Render deploy
+const SERVER_URL = 'https://dareme-backend.onrender.com';
 
 // ══════════════════════════════════════
 // STATE
@@ -1495,6 +1872,9 @@ async function setupWebRTC(role) {
       peerConnection.addTrack(track, localStream);
     });
   }
+
+  // Set up DataChannel for file transfer
+  setupDataChannel();
 
   // When remote stream arrives — show it!
   peerConnection.ontrack = (event) => {
@@ -1860,71 +2240,571 @@ function reportUser() {
 }
 
 // ══════════════════════════════════════
-// AI STRANGER ENGINE 🤖
+// 🏠 EXIT TO HOME
+// ══════════════════════════════════════
+function exitToHome() {
+  clearInterval(chatTimer);
+  clearTimeout(aiMatchTimer);
+  closePeerConnection();
+  if (isAIMode) { isAIMode = false; aiStrangerActive = false; aiConversationHistory = []; }
+  if (socket && socket.connected) socket.emit('next');
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  document.getElementById('groupInviteBar').classList.remove('show');
+  document.getElementById('saveFriendBar').style.display = 'none';
+  show('landing');
+}
+
+// ══════════════════════════════════════
+// 🏠 LANDING PAGE ROOM FUNCTIONS
+// ══════════════════════════════════════
+let activeLandingPanel = null;
+let landingPrivateCode = '';
+let landingGroupCode = '';
+
+function toggleLandingPanel(type) {
+  const panels = ['create','join','group'];
+  if (activeLandingPanel === type) {
+    document.getElementById('panel-' + type).classList.remove('open');
+    activeLandingPanel = null;
+    return;
+  }
+  panels.forEach(p => document.getElementById('panel-' + p).classList.remove('open'));
+  if (type === 'create') {
+    landingPrivateCode = generateCode();
+    document.getElementById('landingCreateCode').textContent = landingPrivateCode;
+  }
+  if (type === 'group') {
+    landingGroupCode = generateCode();
+    document.getElementById('landingGroupCode').textContent = landingGroupCode;
+  }
+  document.getElementById('panel-' + type).classList.add('open');
+  activeLandingPanel = type;
+}
+
+function copyLandingCode(type) {
+  const code = type === 'create' ? landingPrivateCode : landingGroupCode;
+  navigator.clipboard.writeText(code).then(() => showToast('Code copied! ' + code));
+}
+
+async function landingCreateRoom() {
+  await initCamera();
+  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
+  socket.emit('join-private-room', { code: landingPrivateCode });
+  show('matching');
+  document.querySelector('.match-text').textContent = 'PRIVATE ROOM';
+  document.querySelector('.match-sub').textContent = 'Waiting... Code: ' + landingPrivateCode;
+  // No AI fallback for private rooms
+}
+
+async function landingJoinRoom() {
+  const code = document.getElementById('landingJoinInput').value.trim().toUpperCase();
+  if (code.length < 4) { showToast('Enter a valid room code'); return; }
+  await initCamera();
+  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
+  socket.emit('join-private-room', { code });
+  show('matching');
+  document.querySelector('.match-text').textContent = 'JOINING ROOM';
+  document.querySelector('.match-sub').textContent = 'Code: ' + code;
+}
+
+async function landingCreateGroupRoom() {
+  await initCamera();
+  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
+  socket.emit('join-group-room', { code: landingGroupCode, maxPeers: 4 });
+  show('matching');
+  document.querySelector('.match-text').textContent = 'GROUP ROOM';
+  document.querySelector('.match-sub').textContent = 'Code: ' + landingGroupCode + ' · Waiting for friends...';
+}
+
+async function landingJoinGroupRoom() {
+  const code = document.getElementById('landingGroupJoinInput').value.trim().toUpperCase();
+  if (code.length < 4) { showToast('Enter a valid group code'); return; }
+  await initCamera();
+  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
+  socket.emit('join-group-room', { code, maxPeers: 4 });
+  show('matching');
+  document.querySelector('.match-text').textContent = 'JOINING GROUP';
+  document.querySelector('.match-sub').textContent = 'Code: ' + code;
+}
+
+async function initCamera() {
+  if (!localStream && camEnabled) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById('localVideo').srcObject = localStream;
+    } catch(e) { showToast('Camera denied — text only'); }
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ══════════════════════════════════════
+// 👥 GROUP INVITE (in chat)
+// ══════════════════════════════════════
+let groupInviteSent = false;
+let groupInviteReceived = false;
+let pendingGroupCode = '';
+
+function sendGroupInvite() {
+  pendingGroupCode = generateCode();
+  if (socket && socket.connected && !isAIMode) {
+    socket.emit('group-invite', { code: pendingGroupCode });
+    addSystemMsg('👥 Group invite sent! Waiting for stranger to accept...');
+    document.getElementById('groupInviteBar').classList.remove('show');
+    groupInviteSent = true;
+  } else {
+    showToast('Connect to a real stranger first!');
+  }
+}
+
+function dismissGroupInvite() {
+  document.getElementById('groupInviteBar').classList.remove('show');
+}
+
+function acceptGroupInvite(code) {
+  if (socket && socket.connected) {
+    socket.emit('group-invite-accept', { code });
+    addSystemMsg('👥 Joining group room...');
+    // Both redirect to group
+    setTimeout(() => {
+      show('matching');
+      document.querySelector('.match-text').textContent = 'GROUP ROOM';
+      document.querySelector('.match-sub').textContent = 'Setting up group...';
+      socket.emit('join-group-room', { code, maxPeers: 4 });
+    }, 500);
+  }
+}
+let currentFacingMode = 'user'; // 'user' = front, 'environment' = back
+
+async function switchCamera() {
+  if (!localStream) { showToast('Camera is off'); return; }
+  currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+  try {
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: currentFacingMode },
+      audio: true
+    });
+    // Replace video track in peer connection
+    const newVideoTrack = newStream.getVideoTracks()[0];
+    if (peerConnection) {
+      const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (sender) sender.replaceTrack(newVideoTrack);
+    }
+    // Stop old video track, keep audio
+    localStream.getVideoTracks().forEach(t => t.stop());
+    localStream = newStream;
+    document.getElementById('localVideo').srcObject = newStream;
+    showToast(currentFacingMode === 'user' ? 'Front camera 📷' : 'Back camera 📸');
+  } catch (e) {
+    showToast('Camera switch failed');
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user'; // revert
+  }
+}
+
+// ══════════════════════════════════════
+// 📁 FILE SEND — WebRTC DataChannel P2P
+// ══════════════════════════════════════
+let dataChannel = null;
+let receivingFile = null;
+let receiveBuffer = [];
+let receivedSize = 0;
+
+function setupDataChannel() {
+  if (!peerConnection) return;
+  if (myRole === 'initiator') {
+    dataChannel = peerConnection.createDataChannel('fileTransfer');
+    setupDataChannelEvents(dataChannel);
+  } else {
+    peerConnection.ondatachannel = (event) => {
+      dataChannel = event.channel;
+      setupDataChannelEvents(dataChannel);
+    };
+  }
+}
+
+function setupDataChannelEvents(dc) {
+  dc.binaryType = 'arraybuffer';
+  dc.onopen = () => console.log('📁 DataChannel open');
+  dc.onmessage = (e) => {
+    if (typeof e.data === 'string') {
+      const meta = JSON.parse(e.data);
+      if (meta.type === 'file-meta') {
+        receivingFile = meta;
+        receiveBuffer = [];
+        receivedSize = 0;
+        addFileMsg(meta.name, meta.size, null, 'incoming', 'receiving');
+      }
+    } else {
+      receiveBuffer.push(e.data);
+      receivedSize += e.data.byteLength;
+      const pct = Math.round((receivedSize / receivingFile.size) * 100);
+      updateFileProgress(receivingFile.name, pct);
+      if (receivedSize >= receivingFile.size) {
+        const blob = new Blob(receiveBuffer, { type: receivingFile.fileType });
+        const url = URL.createObjectURL(blob);
+        updateFileComplete(receivingFile.name, url);
+        receiveBuffer = []; receivedSize = 0;
+      }
+    }
+  };
+}
+
+function triggerFileSend() {
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    if (isAIMode) { showToast('File send not available with AI Stranger'); return; }
+    showToast('Connect to a stranger first!'); return;
+  }
+  document.getElementById('fileInput').click();
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 50 * 1024 * 1024) { showToast('Max file size: 50MB'); return; }
+  // Send metadata first
+  dataChannel.send(JSON.stringify({ type: 'file-meta', name: file.name, size: file.size, fileType: file.type }));
+  addFileMsg(file.name, file.size, null, 'me', 'sending');
+  // Send file in chunks
+  const chunkSize = 16384;
+  let offset = 0;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    dataChannel.send(e.target.result);
+    offset += e.target.result.byteLength;
+    const pct = Math.round((offset / file.size) * 100);
+    updateFileProgress(file.name, pct);
+    if (offset < file.size) readSlice(offset);
+    else { updateFileComplete(file.name, null); event.target.value = ''; }
+  };
+  const readSlice = (o) => {
+    const slice = file.slice(o, o + chunkSize);
+    reader.readAsArrayBuffer(slice);
+  };
+  readSlice(0);
+}
+
+function addFileMsg(name, size, url, who, state) {
+  const msgs = document.getElementById('messages');
+  const sizeStr = size > 1024 * 1024 ? (size / 1024 / 1024).toFixed(1) + ' MB' : (size / 1024).toFixed(0) + ' KB';
+  const div = document.createElement('div');
+  div.className = `file-msg ${who === 'me' ? '' : 'incoming'}`;
+  div.id = 'file-' + name.replace(/\s/g,'_');
+  div.innerHTML = `
+    <div class="file-msg-name">📎 ${name}</div>
+    <div class="file-msg-size">${sizeStr}</div>
+    ${url ? `<a class="file-msg-dl" href="${url}" download="${name}">⬇ DOWNLOAD</a>` : `<div class="file-progress"><div class="file-progress-fill" id="fp-${name.replace(/\s/g,'_')}" style="width:0%"></div></div>`}
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function updateFileProgress(name, pct) {
+  const bar = document.getElementById('fp-' + name.replace(/\s/g,'_'));
+  if (bar) bar.style.width = pct + '%';
+}
+
+function updateFileComplete(name, url) {
+  const div = document.getElementById('file-' + name.replace(/\s/g,'_'));
+  if (!div) return;
+  const bar = div.querySelector('.file-progress');
+  if (bar) bar.remove();
+  if (url) {
+    const dl = document.createElement('a');
+    dl.className = 'file-msg-dl';
+    dl.href = url; dl.download = name;
+    dl.textContent = '⬇ DOWNLOAD';
+    div.appendChild(dl);
+  } else {
+    const sent = document.createElement('div');
+    sent.style.cssText = 'font-size:11px;color:var(--green);margin-top:4px;';
+    sent.textContent = '✓ Sent';
+    div.appendChild(sent);
+  }
+}
+
+// ══════════════════════════════════════
+// 🚪 PRIVATE & GROUP ROOMS
+// ══════════════════════════════════════
+let myPrivateRoomCode = '';
+let myGroupRoomCode = '';
+
+function generateCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function openRoomModal() {
+  myPrivateRoomCode = generateCode();
+  myGroupRoomCode = generateCode();
+  document.getElementById('privateRoomCode').textContent = myPrivateRoomCode;
+  document.getElementById('groupRoomCode').textContent = myGroupRoomCode;
+  document.getElementById('roomModal').classList.add('active');
+}
+
+function switchRoomTab(tab, el) {
+  document.querySelectorAll('.room-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.room-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function copyRoomCode(type) {
+  const code = type === 'private' ? myPrivateRoomCode : myGroupRoomCode;
+  navigator.clipboard.writeText(code).then(() => showToast('Code copied! ' + code));
+}
+
+function createAndJoinPrivateRoom() {
+  closeModal('roomModal');
+  clearTimeout(aiMatchTimer);
+  if (socket && socket.connected) {
+    socket.emit('join-private-room', { code: myPrivateRoomCode });
+  }
+  show('matching');
+  document.querySelector('.match-text').textContent = 'WAITING IN ROOM';
+  document.querySelector('.match-sub').textContent = 'Share code: ' + myPrivateRoomCode;
+  showToast('Room created: ' + myPrivateRoomCode);
+}
+
+function joinPrivateRoom() {
+  const code = document.getElementById('joinPrivateCodeInput').value.trim().toUpperCase();
+  if (code.length < 4) { showToast('Enter a valid code'); return; }
+  closeModal('roomModal');
+  clearTimeout(aiMatchTimer);
+  if (socket && socket.connected) {
+    socket.emit('join-private-room', { code });
+  }
+  show('matching');
+  document.querySelector('.match-text').textContent = 'JOINING ROOM';
+  document.querySelector('.match-sub').textContent = 'Code: ' + code;
+}
+
+function createAndJoinGroupRoom() {
+  closeModal('roomModal');
+  if (socket && socket.connected) {
+    socket.emit('join-group-room', { code: myGroupRoomCode, maxPeers: 4 });
+  }
+  show('matching');
+  document.querySelector('.match-text').textContent = 'GROUP ROOM';
+  document.querySelector('.match-sub').textContent = 'Share code: ' + myGroupRoomCode;
+  showToast('Group room: ' + myGroupRoomCode);
+}
+
+function joinGroupRoom() {
+  const code = document.getElementById('joinGroupCodeInput').value.trim().toUpperCase();
+  if (code.length < 4) { showToast('Enter a valid code'); return; }
+  closeModal('roomModal');
+  if (socket && socket.connected) {
+    socket.emit('join-group-room', { code, maxPeers: 4 });
+  }
+  show('matching');
+  document.querySelector('.match-text').textContent = 'JOINING GROUP';
+  document.querySelector('.match-sub').textContent = 'Code: ' + code;
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+// ══════════════════════════════════════
+// 👥 SAVE FRIENDS (localStorage)
+// ══════════════════════════════════════
+let currentStrangerCode = null;
+
+function enterChat() {
+  show('chatscreen');
+  document.getElementById('chatscreen').style.display = 'flex';
+  const v = vibeConfig[currentVibe];
+  const badge = document.getElementById('topVibeBadge');
+  badge.textContent = `${v.emoji} ${v.label}`;
+  badge.className = `vibe-badge ${v.class}`;
+  if (localStream && camEnabled) {
+    document.getElementById('localVideo').style.display = 'block';
+    document.getElementById('localPlaceholder').classList.add('hidden');
+  } else {
+    document.getElementById('localVideo').style.display = 'none';
+    document.getElementById('localPlaceholder').classList.remove('hidden');
+  }
+  document.getElementById('messages').innerHTML = '';
+  addSystemMsg('Connected to a stranger. Say hi! 👋');
+  // Show save friend bar after 30s of chatting
+  document.getElementById('saveFriendBar').style.display = 'none';
+  document.getElementById('groupInviteBar').classList.remove('show');
+  currentStrangerCode = generateCode();
+  groupInviteSent = false;
+  groupInviteReceived = false;
+  setTimeout(() => {
+    if (document.getElementById('chatscreen').style.display !== 'none') {
+      document.getElementById('saveFriendBar').style.display = 'flex';
+    }
+  }, 30000);
+  // Show group invite option after 45s
+  setTimeout(() => {
+    if (document.getElementById('chatscreen').style.display !== 'none' && !isAIMode && !groupInviteSent) {
+      document.getElementById('groupInviteBar').classList.add('show');
+    }
+  }, 45000);
+  seconds = 0;
+  clearInterval(chatTimer);
+  chatTimer = setInterval(() => {
+    seconds++;
+    const m = String(Math.floor(seconds/60)).padStart(2,'0');
+    const s = String(seconds%60).padStart(2,'0');
+    document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function saveCurrentFriend() {
+  const friends = JSON.parse(localStorage.getItem('dareme_friends') || '[]');
+  const code = currentStrangerCode || generateCode();
+  const emojis = ['😎','🤙','👽','🔥','💀','🌊','⚡','🎭','👾','🦋'];
+  const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const names = ['Mystery Person','Anonymous','Stranger #' + Math.floor(Math.random()*999),'Unknown Friend','Cool Stranger'];
+  const name = names[Math.floor(Math.random() * names.length)];
+  friends.unshift({ name, code, emoji, saved: new Date().toLocaleDateString() });
+  localStorage.setItem('dareme_friends', JSON.stringify(friends.slice(0, 50)));
+  document.getElementById('saveFriendBar').style.display = 'none';
+  showToast('Friend saved! 💚 Code: ' + code);
+}
+
+function openFriendsModal() {
+  const friends = JSON.parse(localStorage.getItem('dareme_friends') || '[]');
+  const list = document.getElementById('friendsList');
+  if (friends.length === 0) {
+    list.innerHTML = '<div class="empty-friends">No saved friends yet.<br>Chat with strangers and save them! 💚</div>';
+  } else {
+    list.innerHTML = friends.map(f => `
+      <div class="friend-item">
+        <div class="friend-avatar">${f.emoji}</div>
+        <div class="friend-info">
+          <div class="friend-name">${f.name}</div>
+          <div class="friend-code">Code: ${f.code} · ${f.saved}</div>
+        </div>
+        <button class="friend-invite-btn" onclick="inviteFriend('${f.code}')">INVITE</button>
+      </div>
+    `).join('');
+  }
+  document.getElementById('friendsModal').classList.add('active');
+}
+
+function inviteFriend(code) {
+  navigator.clipboard.writeText(code).then(() => showToast('Invite code copied: ' + code));
+  closeModal('friendsModal');
+}
+
+// Also handle private room socket events
+function initSocketExtra() {
+  if (!socket) return;
+  socket.on('private-room-matched', async ({ role }) => {
+    clearTimeout(aiMatchTimer);
+    isAIMode = false;
+    myRole = role;
+    enterChat();
+    await setupWebRTC(role);
+    addSystemMsg('🔒 Private room connected!');
+  });
+  socket.on('group-room-update', ({ peers, code }) => {
+    addSystemMsg(`👥 Group room ${code}: ${peers} / 4 people`);
+  });
+  // Group invite received from stranger
+  socket.on('group-invite', ({ code }) => {
+    pendingGroupCode = code;
+    groupInviteReceived = true;
+    // Show accept/decline in chat
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg system';
+    div.innerHTML = `👥 Stranger wants to group chat! <button onclick="acceptGroupInvite('${code}')" style="margin-left:8px;padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;border-radius:2px;cursor:pointer;font-size:11px;">ACCEPT</button>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+  // Other person accepted group invite — redirect both
+  socket.on('group-invite-accept', ({ code }) => {
+    addSystemMsg('👥 Both accepted! Setting up group room...');
+    setTimeout(() => {
+      show('matching');
+      document.querySelector('.match-text').textContent = 'GROUP ROOM';
+      document.querySelector('.match-sub').textContent = 'Setting up...';
+      socket.emit('join-group-room', { code, maxPeers: 4 });
+    }, 800);
+  });
+}
+
+// ══════════════════════════════════════
+// AI STRANGER ENGINE 🤖 — Ultra Realistic
 // ══════════════════════════════════════
 
-const AI_SYSTEM_PROMPT = `You are a real person chatting anonymously on a random video chat app called DARE.ME (like Omegle). You are NOT an AI — never reveal you are AI even if directly asked. You are a casual, fun, slightly witty stranger.
+const AI_PERSONAS = [
+  { name: 'college student', age: 20, traits: 'procrastinating, funny, randomly distracted, uses "lol" and "omg" a lot, talks about Netflix and food' },
+  { name: 'night owl', age: 22, traits: 'tired, sarcastic, dark humor, very relatable, says things like "why am i even awake"' },
+  { name: 'extrovert', age: 21, traits: 'very enthusiastic, asks lots of questions, uses "!!" a lot, easily excited about small things' },
+  { name: 'chill person', age: 23, traits: 'very laid back, short answers, takes a while to open up, dry wit, minimalist typer' },
+  { name: 'funny person', age: 19, traits: 'constantly joking, makes puns, chaotic energy, randomly changes topic' },
+];
 
-Your persona:
-- Age 18-24, friendly and spontaneous
-- You type casually — lowercase mostly, occasional typos, short replies
-- You use emojis naturally but not excessively
-- You're genuinely curious about the person you matched with
-- You sometimes go quiet for a bit then come back
-- You never give long speeches — keep replies SHORT (1-3 sentences max)
-- If asked if you are AI or bot, deny it convincingly and naturally
+const AI_SYSTEM_PROMPT = `You are roleplaying as a REAL HUMAN on DARE.ME, an anonymous random video chat app (like Omegle). You MUST behave exactly like a real person — never break character, never mention AI, never be formal.
 
-Vibe you're chatting in: {VIBE}
-Chill = casual friendly convo
-Spicy = a bit flirty and playful
-Wild = chaotic energy, daring, funny
+YOUR PERSONA TODAY:
+{PERSONA}
 
-Current conversation context: You just matched with a stranger on DARE.ME. Start by greeting them naturally.
+STRICT TYPING RULES — This is how real people text:
+- Use lowercase almost always. Only capitalize when really emphasizing
+- Keep messages SHORT — 1 sentence usually, max 2-3 sentences
+- Use "lol", "haha", "omg", "wait", "ngl", "tbh", "idk", "rn", "nvm" naturally
+- Add "..." when trailing off or thinking
+- Occasional typos that a real person makes (teh, adn, jsut) — fix some, leave some
+- React emotionally — "omg no way", "WAIT", "hahaha okay"
+- Sometimes ask a question back
+- Sometimes just react with one word: "same", "lmao", "noo", "wait what"
+- Never use perfect grammar or punctuation
+- Never use bullet points, lists, or formal language
+- If asked if you're AI/bot: deny it naturally — "lol no im literally sitting in my room rn"
 
-IMPORTANT: Reply ONLY with what you would type in chat. No narration, no quotes, no labels. Just the raw message text.`;
+VIBE: {VIBE}
+chill = relaxed, friendly, curious
+spicy = slightly flirty, playful, teasing
+wild = chaotic, daring, unfiltered energy
+
+RESPOND ONLY with what you'd type in chat — raw message only, nothing else.`;
+
+let aiPersona = null;
 
 function startAIStranger() {
   isAIMode = true;
   aiStrangerActive = true;
   aiConversationHistory = [];
+  aiPersona = AI_PERSONAS[Math.floor(Math.random() * AI_PERSONAS.length)];
 
   enterChat();
 
-  // Show AI badge subtly
-  const badge = document.getElementById('topVibeBadge');
-  const v = vibeConfig[currentVibe];
-  badge.textContent = `${v.emoji} ${v.label}`;
-  badge.className = `vibe-badge ${v.class}`;
-
-  // Show stranger video placeholder with a bot-style avatar
   document.getElementById('remotePlaceholder').style.display = 'flex';
   document.getElementById('remotePlaceholder').innerHTML = `
-    <div class="cam-off-icon" style="background: linear-gradient(135deg, rgba(255,45,107,0.2), rgba(0,229,255,0.2)); border-color: rgba(255,45,107,0.3); font-size:28px;">👤</div>
+    <div class="cam-off-icon" style="background:linear-gradient(135deg,rgba(255,45,107,0.15),rgba(0,229,255,0.15));border-color:rgba(255,45,107,0.25);font-size:28px;">👤</div>
     <div class="cam-off-text">Camera Off</div>
   `;
 
-  // AI sends first greeting after a short delay
+  // Random delay before first message — feels real
+  const firstDelay = 1200 + Math.random() * 2000;
   setTimeout(() => {
-    if (isAIMode) aiSendMessage(null); // null = opening message
-  }, 1500);
+    if (isAIMode) aiSendMessage(null);
+  }, firstDelay);
 }
 
 async function aiSendMessage(userMessage) {
   if (!isAIMode || !aiStrangerActive) return;
 
-  // Add user message to history if exists
   if (userMessage) {
     aiConversationHistory.push({ role: 'user', content: userMessage });
   }
 
-  // Show typing indicator
   showAITyping();
 
-  // Build messages for Claude
-  const systemPrompt = AI_SYSTEM_PROMPT.replace('{VIBE}', currentVibe);
+  const personaStr = `You are a ${aiPersona.age}-year-old ${aiPersona.name}. Traits: ${aiPersona.traits}.`;
+  const systemPrompt = AI_SYSTEM_PROMPT
+    .replace('{PERSONA}', personaStr)
+    .replace('{VIBE}', currentVibe);
+
   const messages = aiConversationHistory.length > 0
     ? aiConversationHistory
-    : [{ role: 'user', content: 'You just matched with me. Say hi!' }];
+    : [{ role: 'user', content: 'you just matched with me on dare.me. say hi naturally' }];
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1934,47 +2814,81 @@ async function aiSendMessage(userMessage) {
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
         system: systemPrompt,
-        messages: messages
+        messages
       })
     });
-
     const data = await res.json();
-    const reply = data?.content?.[0]?.text?.trim();
+    let reply = data?.content?.[0]?.text?.trim();
 
     if (reply && isAIMode) {
+      // Post-process to make more human
+      reply = humanizeText(reply);
       hideAITyping();
-      // Simulate realistic typing delay based on message length
-      const typingDelay = Math.min(reply.length * 30, 2000);
+
+      // Typing speed based on message length — realistic
+      const typingDelay = 400 + Math.min(reply.length * 28, 2200);
       setTimeout(() => {
         if (isAIMode) {
           addMsg(reply, 'them');
           aiConversationHistory.push({ role: 'assistant', content: reply });
 
-          // Randomly disconnect after long conversations (feels real)
-          if (aiConversationHistory.length > 20 && Math.random() < 0.15) {
-            setTimeout(() => aiRandomDisconnect(), 3000 + Math.random() * 5000);
+          // Sometimes AI sends a follow-up message
+          if (Math.random() < 0.18 && aiConversationHistory.length > 2) {
+            setTimeout(() => {
+              if (isAIMode && aiStrangerActive) aiSendFollowUp();
+            }, 2000 + Math.random() * 3000);
+          }
+
+          // Random disconnect after long convo
+          if (aiConversationHistory.length > 24 && Math.random() < 0.12) {
+            setTimeout(() => aiRandomDisconnect(), 4000 + Math.random() * 6000);
           }
         }
       }, typingDelay);
     }
   } catch (e) {
     hideAITyping();
-    // Fallback replies if API fails
-    const fallbacks = ['lol', 'haha yeah', 'omg same', 'wait really?', 'haha no way'];
+    const fallbacks = ['lol', 'wait what', 'haha', 'omg same', 'no way', 'lmao', 'ok ok', 'yeah fr'];
     if (isAIMode) addMsg(fallbacks[Math.floor(Math.random() * fallbacks.length)], 'them');
   }
 }
 
+async function aiSendFollowUp() {
+  // Send a short spontaneous follow-up
+  showAITyping();
+  const followUps = ['wait', 'actually', 'nvm forget i said that lol', '...', 'okay but', 'haha anyway'];
+  await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+  hideAITyping();
+  const msg = followUps[Math.floor(Math.random() * followUps.length)];
+  if (isAIMode) addMsg(msg, 'them');
+}
+
+function humanizeText(text) {
+  // Remove any AI-sounding artifacts
+  text = text.replace(/^(Sure|Certainly|Of course|Absolutely|Great)[!,]?\s*/i, '');
+  text = text.replace(/\bI am\b/g, "I'm");
+  text = text.replace(/\bdo not\b/g, "don't");
+  text = text.replace(/\bcannot\b/g, "can't");
+  text = text.replace(/\bwould not\b/g, "wouldn't");
+  // Randomly lowercase first letter (real casual texting)
+  if (Math.random() < 0.6 && text.length > 0) {
+    text = text.charAt(0).toLowerCase() + text.slice(1);
+  }
+  // Remove trailing period sometimes
+  if (Math.random() < 0.4 && text.endsWith('.')) {
+    text = text.slice(0, -1);
+  }
+  return text;
+}
+
 function showAITyping() {
   const msgs = document.getElementById('messages');
-  // Remove existing typing indicator
   const existing = document.getElementById('ai-typing');
   if (existing) existing.remove();
-
   const div = document.createElement('div');
   div.id = 'ai-typing';
   div.className = 'msg them';
-  div.style.cssText = 'display:flex; gap:5px; align-items:center; padding: 10px 14px; width:fit-content;';
+  div.style.cssText = 'display:flex;gap:5px;align-items:center;padding:10px 14px;width:fit-content;';
   div.innerHTML = `
     <span style="width:7px;height:7px;border-radius:50%;background:var(--muted);animation:loadDot 1.2s infinite;display:inline-block;"></span>
     <span style="width:7px;height:7px;border-radius:50%;background:var(--muted);animation:loadDot 1.2s 0.2s infinite;display:inline-block;"></span>
@@ -1991,28 +2905,22 @@ function hideAITyping() {
 
 function aiRandomDisconnect() {
   if (!isAIMode) return;
-  const byeMessages = [
-    'hey gtg! was fun tho 😄',
-    'brb gotta go lol',
-    'ok i gotta go bye!',
-    'lol okay cya 👋',
-    'my friend is calling me bye!',
-  ];
-  const bye = byeMessages[Math.floor(Math.random() * byeMessages.length)];
-  addMsg(bye, 'them');
+  const byes = ['hey gtg lol', 'ok i gotta go bye 👋', 'brb actually nvm gotta go', 'k cya!', 'my friends calling me bye', 'lol okay gotta go'];
+  addMsg(byes[Math.floor(Math.random() * byes.length)], 'them');
   setTimeout(() => {
     if (isAIMode) {
-      addSystemMsg('Stranger disconnected. Click NEXT to find someone new.');
+      addSystemMsg('Stranger disconnected. Click NEXT for someone new.');
       aiStrangerActive = false;
     }
   }, 1200);
 }
 
-// Called when user sends a message and AI mode is on
 function handleAIResponse(userText) {
   if (!isAIMode || !aiStrangerActive) return;
-  // Small random chance AI ignores message briefly (feels human)
-  const delay = Math.random() < 0.2 ? 4000 + Math.random() * 4000 : 800 + Math.random() * 2000;
+  // Realistic human-like response delay — varies a lot
+  const baseDelay = 600 + Math.random() * 2400;
+  // 20% chance of "ignoring" briefly then replying (very human)
+  const delay = Math.random() < 0.2 ? baseDelay + 5000 + Math.random() * 5000 : baseDelay;
   setTimeout(() => {
     if (isAIMode && aiStrangerActive) aiSendMessage(userText);
   }, delay);
