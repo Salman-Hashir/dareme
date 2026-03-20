@@ -1,237 +1,227 @@
 // ════════════════════════════════════════════════════
-//  DARE.ME — Backend Server
-//  Socket.io signaling + random matching
+//  DARE.ME — Backend Server v2
+//  Random match + Group expand + Kick voting
 // ════════════════════════════════════════════════════
 
 const express = require('express');
-const http = require('http');
+const http    = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors');
+const cors   = require('cors');
 
-const app = express();
+const app    = express();
 const server = http.createServer(app);
 
-// ── CORS: allow your Vercel frontend URL ──
 const io = new Server(server, {
-  cors: {
-    origin: '*', // In production, replace with your Vercel URL e.g. "https://dareme.vercel.app"
-    methods: ['GET', 'POST']
-  }
+  cors: { origin: '*', methods: ['GET','POST'] }
 });
 
 app.use(cors());
 app.use(express.json());
 
-// ── Health check endpoint (Render needs this) ──
 app.get('/', (req, res) => {
-  res.json({
-    status: 'DARE.ME server running 🎲',
-    online: Object.keys(activePairs).length * 2 + waitingQueue.length,
-    pairs: Object.keys(activePairs).length
-  });
+  res.json({ status: 'DARE.ME server running 🎲', online: getOnlineCount(), groups: Object.keys(groups).length });
 });
 
-// ════════════════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════════════════
+// ════════════════ STATE ════════════════
+let waitingQueue = [];
+const pairs      = {};   // { socketId: partnerId }
+const userVibes  = {};
+const groups     = {};   // { roomId: { members, expandVotes, kickVotes } }
+const socketRoom = {};   // { socketId: roomId }
+const privateWaiting = {};
 
-let waitingQueue = [];       // socket IDs waiting for a match
-const activePairs = {};      // { socketId: partnerSocketId }
-const userVibes = {};        // { socketId: 'chill'|'spicy'|'wild' }
-
-// ════════════════════════════════════════════════════
-//  HELPERS
-// ════════════════════════════════════════════════════
-
+// ════════════════ HELPERS ════════════════
 function getOnlineCount() {
-  return Object.keys(activePairs).length + waitingQueue.length;
+  const g = Object.values(groups).reduce((n, gr) => n + gr.members.length, 0);
+  return g + Object.keys(pairs).length + waitingQueue.length;
+}
+function broadcastCount() { io.emit('online-count', getOnlineCount()); }
+function makeId() { return Math.random().toString(36).substring(2,8).toUpperCase(); }
+
+function matchPair(idA, idB) {
+  pairs[idA] = idB; pairs[idB] = idA;
+  io.to(idA).emit('matched', { role: 'initiator' });
+  io.to(idB).emit('matched', { role: 'receiver' });
+  console.log(`✅ Pair: ${idA.slice(0,6)} ↔ ${idB.slice(0,6)}`);
 }
 
-function matchUsers(socketA, socketB) {
-  // Record the pair both ways
-  activePairs[socketA] = socketB;
-  activePairs[socketB] = socketA;
-
-  // Tell both users they are matched
-  // The one who gets 'matched-initiator' will create the WebRTC offer
-  io.to(socketA).emit('matched', { role: 'initiator', partnerId: socketB });
-  io.to(socketB).emit('matched', { role: 'receiver',  partnerId: socketA });
-
-  console.log(`✅ Matched: ${socketA.slice(0,6)} ↔ ${socketB.slice(0,6)}`);
-}
-
-function removeFromQueue(socketId) {
+function cleanupSocket(socketId) {
+  const partner = pairs[socketId];
+  if (partner) { io.to(partner).emit('partner-disconnected'); delete pairs[partner]; }
+  delete pairs[socketId];
   waitingQueue = waitingQueue.filter(id => id !== socketId);
-}
-
-function disconnectPair(socketId) {
-  const partnerId = activePairs[socketId];
-  if (partnerId) {
-    io.to(partnerId).emit('partner-disconnected');
-    delete activePairs[partnerId];
+  const roomId = socketRoom[socketId];
+  if (roomId && groups[roomId]) leaveGroup(socketId, roomId);
+  delete socketRoom[socketId];
+  for (const code of Object.keys(privateWaiting)) {
+    if (privateWaiting[code] === socketId) delete privateWaiting[code];
   }
-  delete activePairs[socketId];
-  removeFromQueue(socketId);
 }
 
-// ════════════════════════════════════════════════════
-//  SOCKET EVENTS
-// ════════════════════════════════════════════════════
+function leaveGroup(socketId, roomId) {
+  const g = groups[roomId];
+  if (!g) return;
+  g.members = g.members.filter(id => id !== socketId);
+  delete socketRoom[socketId];
+  if (g.expandVotes) g.expandVotes = null;
+  if (g.kickVotes && (g.kickVotes.targetId === socketId || g.kickVotes.votes.has(socketId))) g.kickVotes = null;
+  if (g.members.length === 0) { delete groups[roomId]; return; }
+  g.members.forEach(id => io.to(id).emit('member-left', { socketId, members: g.members }));
+  broadcastGroupState(roomId);
+}
 
+function broadcastGroupState(roomId) {
+  const g = groups[roomId];
+  if (!g) return;
+  const needed = g.members.length === 3 ? 2 : 3;
+  g.members.forEach(id => io.to(id).emit('group-state', {
+    roomId, members: g.members, count: g.members.length, canExpand: g.members.length < 4,
+    expandVotes: g.expandVotes ? { requesterId: g.expandVotes.requesterId, votes: [...g.expandVotes.votes].length, needed: g.members.length } : null,
+    kickVotes: g.kickVotes ? { targetId: g.kickVotes.targetId, votes: [...g.kickVotes.votes].length, needed } : null
+  }));
+}
+
+// ════════════════ SOCKET ════════════════
 io.on('connection', (socket) => {
-  console.log(`🔌 Connected: ${socket.id.slice(0,6)}... [Total: ${io.engine.clientsCount}]`);
+  console.log(`🔌 ${socket.id.slice(0,6)} connected`);
+  broadcastCount();
 
-  // Broadcast updated online count to everyone
-  io.emit('online-count', getOnlineCount());
-
-  // ── JOIN QUEUE ──────────────────────────────────
   socket.on('join-queue', ({ vibe }) => {
-    // Store vibe preference
     userVibes[socket.id] = vibe || 'chill';
-
-    // Remove if already in queue (re-join)
-    removeFromQueue(socket.id);
-
-    // If someone is already waiting → match them
-    if (waitingQueue.length > 0) {
-      const partnerId = waitingQueue.shift();
-      matchUsers(socket.id, partnerId);
-    } else {
-      // Otherwise wait in queue
-      waitingQueue.push(socket.id);
-      socket.emit('waiting');
-      console.log(`⏳ Waiting: ${socket.id.slice(0,6)} | Queue: ${waitingQueue.length}`);
-    }
-
-    io.emit('online-count', getOnlineCount());
+    waitingQueue = waitingQueue.filter(id => id !== socket.id);
+    if (waitingQueue.length > 0) { matchPair(socket.id, waitingQueue.shift()); }
+    else { waitingQueue.push(socket.id); socket.emit('waiting'); }
+    broadcastCount();
   });
 
-  // ── WEBRTC SIGNALING ────────────────────────────
-  // Relay offer from initiator to receiver
-  socket.on('webrtc-offer', ({ offer }) => {
-    const partnerId = activePairs[socket.id];
-    if (partnerId) {
-      io.to(partnerId).emit('webrtc-offer', { offer, from: socket.id });
-    }
+  socket.on('webrtc-offer', ({ offer, to }) => {
+    const target = to || pairs[socket.id];
+    if (target) io.to(target).emit('webrtc-offer', { offer, from: socket.id });
+  });
+  socket.on('webrtc-answer', ({ answer, to }) => {
+    const target = to || pairs[socket.id];
+    if (target) io.to(target).emit('webrtc-answer', { answer, from: socket.id });
+  });
+  socket.on('ice-candidate', ({ candidate, to }) => {
+    const target = to || pairs[socket.id];
+    if (target) io.to(target).emit('ice-candidate', { candidate, from: socket.id });
   });
 
-  // Relay answer from receiver to initiator
-  socket.on('webrtc-answer', ({ answer }) => {
-    const partnerId = activePairs[socket.id];
-    if (partnerId) {
-      io.to(partnerId).emit('webrtc-answer', { answer });
-    }
-  });
-
-  // Relay ICE candidates between peers
-  socket.on('ice-candidate', ({ candidate }) => {
-    const partnerId = activePairs[socket.id];
-    if (partnerId) {
-      io.to(partnerId).emit('ice-candidate', { candidate });
-    }
-  });
-
-  // ── CHAT MESSAGES ───────────────────────────────
   socket.on('chat-message', ({ text }) => {
-    const partnerId = activePairs[socket.id];
-    if (partnerId && text && text.trim()) {
-      io.to(partnerId).emit('chat-message', { text: text.trim() });
-    }
-  });
-
-  // ── TRUTH OR DARE (notify partner) ──────────────
-  socket.on('td-question', ({ type, question, vibe }) => {
-    const partnerId = activePairs[socket.id];
-    if (partnerId) {
-      io.to(partnerId).emit('td-question', { type, question, vibe });
-    }
-  });
-
-  // ── PRIVATE ROOM ────────────────────────────────
-  socket.on('join-private-room', ({ code }) => {
-    const roomKey = 'private_' + code.toUpperCase();
-    if (!waitingQueue.includes(roomKey + ':' + socket.id)) {
-      // Check if someone already waiting in this room
-      const existing = waitingQueue.find(id => id.startsWith(roomKey + ':'));
-      if (existing) {
-        const partnerId = existing.split(':')[1];
-        waitingQueue = waitingQueue.filter(id => id !== existing);
-        matchUsers(socket.id, partnerId);
-        io.to(socket.id).emit('private-room-matched', { role: 'receiver' });
-        io.to(partnerId).emit('private-room-matched', { role: 'initiator' });
-      } else {
-        waitingQueue.push(roomKey + ':' + socket.id);
-        socket.emit('waiting');
-      }
-    }
-    io.emit('online-count', getOnlineCount());
-  });
-
-  // ── GROUP ROOM (up to 4) ────────────────────────
-  socket.on('join-group-room', ({ code, maxPeers }) => {
-    const roomKey = 'group_' + code.toUpperCase();
-    // Find others in this group room
-    const inRoom = Object.keys(activePairs).filter(id => activePairs[id] && activePairs[id].startsWith && activePairs[id].startsWith(roomKey));
-    socket.join(roomKey);
-    // Notify everyone in room
-    io.to(roomKey).emit('group-room-update', {
-      peers: io.sockets.adapter.rooms.get(roomKey)?.size || 1,
-      code: code.toUpperCase()
-    });
-    // Pair with first available person in room for WebRTC
-    const roomMembers = [...(io.sockets.adapter.rooms.get(roomKey) || [])].filter(id => id !== socket.id);
-    if (roomMembers.length > 0) {
-      const partnerId = roomMembers[0];
-      matchUsers(socket.id, partnerId);
+    const roomId = socketRoom[socket.id];
+    if (roomId && groups[roomId]) {
+      groups[roomId].members.filter(id => id !== socket.id).forEach(id => io.to(id).emit('chat-message', { text, from: socket.id }));
     } else {
-      socket.emit('waiting');
+      const p = pairs[socket.id]; if (p) io.to(p).emit('chat-message', { text, from: socket.id });
     }
-    io.emit('online-count', getOnlineCount());
   });
 
-  // ── GROUP INVITE ─────────────────────────────────
-  socket.on('group-invite', ({ code }) => {
-    const partnerId = activePairs[socket.id];
-    if (partnerId) io.to(partnerId).emit('group-invite', { code });
+  socket.on('td-question', ({ type, question }) => {
+    const roomId = socketRoom[socket.id];
+    if (roomId && groups[roomId]) {
+      groups[roomId].members.filter(id => id !== socket.id).forEach(id => io.to(id).emit('td-question', { type, question }));
+    } else {
+      const p = pairs[socket.id]; if (p) io.to(p).emit('td-question', { type, question });
+    }
   });
 
-  socket.on('group-invite-accept', ({ code }) => {
-    const partnerId = activePairs[socket.id];
-    if (partnerId) io.to(partnerId).emit('group-invite-accept', { code });
+  // ── EXPAND GROUP REQUEST ──
+  socket.on('expand-request', () => {
+    const partner = pairs[socket.id];
+    if (!partner) return;
+    const roomId = makeId();
+    groups[roomId] = { members: [socket.id, partner], expandVotes: { requesterId: socket.id, votes: new Set([socket.id]) }, kickVotes: null };
+    socketRoom[socket.id] = roomId;
+    socketRoom[partner] = roomId;
+    delete pairs[socket.id]; delete pairs[partner];
+    socket.emit('expand-requested', { roomId, from: socket.id });
+    io.to(partner).emit('expand-requested', { roomId, from: socket.id });
+    broadcastGroupState(roomId);
+    console.log(`➕ Expand requested room ${roomId}`);
+  });
+
+  // ── EXPAND VOTE ──
+  socket.on('expand-vote', ({ roomId, agree }) => {
+    const g = groups[roomId];
+    if (!g || !g.expandVotes || !g.members.includes(socket.id)) return;
+    if (!agree) {
+      g.expandVotes = null;
+      g.members.forEach(id => io.to(id).emit('expand-declined', { by: socket.id }));
+      broadcastGroupState(roomId); return;
+    }
+    g.expandVotes.votes.add(socket.id);
+    if (g.expandVotes.votes.size >= g.members.length) {
+      g.expandVotes = null;
+      if (waitingQueue.length > 0) {
+        const newMember = waitingQueue.shift();
+        g.members.push(newMember);
+        socketRoom[newMember] = roomId;
+        g.members.forEach(id => io.to(id).emit('member-joined', { newMember, members: g.members }));
+        io.to(newMember).emit('group-joined', { roomId, members: g.members });
+        console.log(`➕ ${newMember.slice(0,6)} joined group ${roomId} (${g.members.length} people)`);
+      } else {
+        g.members.forEach(id => io.to(id).emit('expand-no-stranger'));
+      }
+      broadcastGroupState(roomId); broadcastCount();
+    } else { broadcastGroupState(roomId); }
+  });
+
+  // ── KICK VOTE START ──
+  socket.on('kick-vote', ({ targetId }) => {
+    const roomId = socketRoom[socket.id];
+    const g = groups[roomId];
+    if (!g || !g.members.includes(targetId) || g.kickVotes) return;
+    g.kickVotes = { targetId, votes: new Set([socket.id]) };
+    const needed = g.members.length === 3 ? 2 : 3;
+    g.members.forEach(id => io.to(id).emit('kick-vote-started', { targetId, by: socket.id, votes: 1, needed }));
+    broadcastGroupState(roomId);
+  });
+
+  // ── KICK VOTE CAST ──
+  socket.on('kick-vote-cast', ({ roomId, agree }) => {
+    const g = groups[roomId];
+    if (!g || !g.kickVotes || !g.members.includes(socket.id) || socket.id === g.kickVotes.targetId) return;
+    if (agree) g.kickVotes.votes.add(socket.id);
+    const needed = g.members.length === 3 ? 2 : 3;
+    const current = g.kickVotes.votes.size;
+    g.members.forEach(id => io.to(id).emit('kick-vote-update', { targetId: g.kickVotes.targetId, votes: current, needed }));
+    if (current >= needed) {
+      const kickedId = g.kickVotes.targetId;
+      g.kickVotes = null;
+      io.to(kickedId).emit('you-were-kicked');
+      leaveGroup(kickedId, roomId);
+      delete socketRoom[kickedId];
+      console.log(`🚫 Kicked ${kickedId.slice(0,6)} from ${roomId}`);
+    }
+    if (g.members && g.members.length > 0) broadcastGroupState(roomId);
+    broadcastCount();
   });
 
   socket.on('next', () => {
-    disconnectPair(socket.id);
-    // Immediately re-join queue
-    if (waitingQueue.length > 0) {
-      const partnerId = waitingQueue.shift();
-      matchUsers(socket.id, partnerId);
-    } else {
-      waitingQueue.push(socket.id);
-      socket.emit('waiting');
-    }
-    io.emit('online-count', getOnlineCount());
+    cleanupSocket(socket.id);
+    if (waitingQueue.length > 0) { matchPair(socket.id, waitingQueue.shift()); }
+    else { waitingQueue.push(socket.id); socket.emit('waiting'); }
+    broadcastCount();
   });
 
-  // ── DISCONNECT ──────────────────────────────────
+  socket.on('join-private-room', ({ code }) => {
+    const key = code.toUpperCase();
+    if (privateWaiting[key]) {
+      const partnerId = privateWaiting[key]; delete privateWaiting[key];
+      matchPair(socket.id, partnerId);
+      io.to(socket.id).emit('private-room-matched', { role: 'receiver' });
+      io.to(partnerId).emit('private-room-matched', { role: 'initiator' });
+    } else { privateWaiting[key] = socket.id; socket.emit('waiting'); }
+    broadcastCount();
+  });
+
   socket.on('disconnect', () => {
-    console.log(`❌ Disconnected: ${socket.id.slice(0,6)}`);
-    disconnectPair(socket.id);
-    delete userVibes[socket.id];
-    io.emit('online-count', getOnlineCount());
+    console.log(`❌ ${socket.id.slice(0,6)} disconnected`);
+    cleanupSocket(socket.id); delete userVibes[socket.id]; broadcastCount();
   });
 });
 
-// ════════════════════════════════════════════════════
-//  START SERVER
-// ════════════════════════════════════════════════════
-
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`
-  ╔══════════════════════════════════╗
-  ║   DARE.ME Server Running 🎲      ║
-  ║   Port: ${PORT}                     ║
-  ╚══════════════════════════════════╝
-  `);
+  console.log(`\n  ╔══════════════════════════════════╗\n  ║   DARE.ME Server v2 Running 🎲   ║\n  ║   Port: ${PORT}                     ║\n  ╚══════════════════════════════════╝\n`);
 });
