@@ -1376,12 +1376,30 @@ let aiConversationHistory = [];
 let aiMatchTimer = null;
 let aiStrangerActive = false;
 
-// WebRTC config — free STUN servers from Google
+// WebRTC config — STUN + TURN (Metered.ca)
 const RTC_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
+    {
+      urls: 'turn:standard.relay.metered.ca:80',
+      username: '7ab42c41d8b18f8d0bf037ac',
+      credential: 'xvUfnRwbZIY5kmM3'
+    },
+    {
+      urls: 'turn:standard.relay.metered.ca:80?transport=tcp',
+      username: '7ab42c41d8b18f8d0bf037ac',
+      credential: 'xvUfnRwbZIY5kmM3'
+    },
+    {
+      urls: 'turn:standard.relay.metered.ca:443',
+      username: '7ab42c41d8b18f8d0bf037ac',
+      credential: 'xvUfnRwbZIY5kmM3'
+    },
+    {
+      urls: 'turns:standard.relay.metered.ca:443?transport=tcp',
+      username: '7ab42c41d8b18f8d0bf037ac',
+      credential: 'xvUfnRwbZIY5kmM3'
+    }
   ]
 };
 
