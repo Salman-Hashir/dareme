@@ -2236,7 +2236,7 @@ async function setupWebRTC(role) {
     const remoteVideo = document.getElementById('remoteVideo');
     const remotePlaceholder = document.getElementById('remotePlaceholder');
     if (event.streams && event.streams[0]) {
-      remoteVideo.srcObject = event.streams[0];
+      attachVideoStream(remoteVideo, event.streams[0]);
       remoteVideo.style.display = 'block';
       remotePlaceholder.style.display = 'none';
     }
@@ -2315,22 +2315,37 @@ async function startMatching() {
   if (camEnabled) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      document.getElementById('localVideo').srcObject = localStream;
+      const lv = document.getElementById('localVideo');
+      if (lv) attachVideoStream(lv, localStream);
     } catch (e) {
       showToast('Camera access denied — text only mode');
     }
   }
 
-  // Try real server match first
-  if (!socket || !socket.connected) initSocket();
-  setTimeout(() => {
-    socket.emit('join-queue', { vibe: currentVibe });
-  }, 500);
+  // Disconnect old socket fully before reconnecting — prevents stale events firing
+  if (socket) {
+    socket.removeAllListeners();
+    socket.disconnect();
+    socket = null;
+  }
+
+  // Fresh socket connection
+  initSocket();
+
+  // Wait for socket to connect, then join queue
+  const waitForConnect = () => new Promise(resolve => {
+    if (socket.connected) { resolve(); return; }
+    socket.once('connect', resolve);
+    setTimeout(resolve, 2000); // max 2s wait
+  });
+
+  await waitForConnect();
+  socket.emit('join-queue', { vibe: currentVibe });
 
   // If no real match in 5 seconds → fallback to AI Stranger
   aiMatchTimer = setTimeout(() => {
     if (document.getElementById('matching').style.display !== 'none') {
-      console.log('🤖 No real match found — starting AI Stranger');
+      console.log('🤖 No real match — starting AI Stranger');
       startAIStranger();
     }
   }, 5000);
@@ -2355,7 +2370,8 @@ function enterChat() {
 
   // Local video
   if (localStream && camEnabled) {
-    document.getElementById('localVideo').style.display = 'block';
+    const lv = document.getElementById('localVideo');
+    if (lv) { lv.style.display = 'block'; attachVideoStream(lv, localStream); }
     document.getElementById('localPlaceholder').classList.add('hidden');
   } else {
     document.getElementById('localVideo').style.display = 'none';
@@ -2392,23 +2408,34 @@ function nextStranger() {
   clearTimeout(aiMatchTimer);
   closePeerConnection();
 
-  // Stop AI mode if active
-  if (isAIMode) {
-    isAIMode = false;
-    aiStrangerActive = false;
-    aiConversationHistory = [];
-  }
+  // Stop AI
+  isAIMode = false; aiStrangerActive = false; aiConversationHistory = [];
+
+  // Reset group
+  Object.values(groupPeers).forEach(pc => { try { pc.close(); } catch(e){} });
+  groupPeers = {}; isInGroup = false; groupMembers = []; currentRoomId = null;
+
+  // Tell server we want next (before disconnecting)
+  if (socket && socket.connected) socket.emit('next');
 
   document.getElementById('messages').innerHTML = '';
   show('matching');
+  document.querySelector('.match-text').textContent = 'FINDING STRANGER';
+  document.querySelector('.match-sub').textContent = 'Please wait... looking for someone';
 
-  // Try real match again, AI fallback after 5s
-  if (socket && socket.connected) {
-    socket.emit('next');
-  } else {
-    initSocket();
-    setTimeout(() => socket.emit('join-queue', { vibe: currentVibe }), 500);
-  }
+  // Fresh socket — prevents stale matched events
+  if (socket) { socket.removeAllListeners(); socket.disconnect(); socket = null; }
+  initSocket();
+
+  const waitAndQueue = () => new Promise(resolve => {
+    if (socket && socket.connected) { resolve(); return; }
+    socket.once('connect', resolve);
+    setTimeout(resolve, 2000);
+  });
+
+  waitAndQueue().then(() => {
+    if (socket) socket.emit('join-queue', { vibe: currentVibe });
+  });
 
   aiMatchTimer = setTimeout(() => {
     if (document.getElementById('matching').style.display !== 'none') {
@@ -2605,17 +2632,121 @@ function reportUser() {
 }
 
 // ══════════════════════════════════════
-// 🏠 EXIT TO HOME
+// 🎥 VIDEO STREAM ATTACH — Black screen fix
 // ══════════════════════════════════════
+function attachVideoStream(videoEl, stream) {
+  if (!videoEl || !stream) return;
+
+  // If same stream already attached — just play
+  if (videoEl.srcObject === stream) {
+    playVideo(videoEl);
+    return;
+  }
+
+  videoEl.srcObject = stream;
+
+  // Wait for metadata then play
+  videoEl.onloadedmetadata = () => playVideo(videoEl);
+
+  // Fallback — try play after short delay if onloadedmetadata doesn't fire
+  setTimeout(() => playVideo(videoEl), 500);
+}
+
+function playVideo(videoEl) {
+  if (!videoEl || videoEl.paused === false) return;
+  const p = videoEl.play();
+  if (p !== undefined) {
+    p.catch(err => {
+      // Autoplay blocked — show tap-to-play overlay
+      if (err.name === 'NotAllowedError') {
+        showTapToPlay(videoEl);
+      }
+    });
+  }
+}
+
+function showTapToPlay(videoEl) {
+  // Create a tap overlay on the video box
+  const parent = videoEl.closest('.video-box');
+  if (!parent || parent.querySelector('.tap-to-play')) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'tap-to-play';
+  overlay.style.cssText = `
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:8px;
+    background:rgba(0,0,0,0.5); cursor:pointer; z-index:20;
+    backdrop-filter:blur(4px);
+  `;
+  overlay.innerHTML = `
+    <div style="font-size:32px;">▶️</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:2px;">TAP TO PLAY</div>
+  `;
+  overlay.onclick = () => {
+    videoEl.play().then(() => overlay.remove()).catch(() => {});
+  };
+  parent.appendChild(overlay);
+}
 function exitToHome() {
+  // Stop timers
   clearInterval(chatTimer);
   clearTimeout(aiMatchTimer);
+
+  // Stop AI mode
+  isAIMode = false;
+  aiStrangerActive = false;
+  aiConversationHistory = [];
+
+  // Close WebRTC
   closePeerConnection();
-  if (isAIMode) { isAIMode = false; aiStrangerActive = false; aiConversationHistory = []; }
-  if (socket && socket.connected) socket.emit('next');
+
+  // Close group peers
+  Object.values(groupPeers).forEach(pc => { try { pc.close(); } catch(e){} });
+  groupPeers = {};
+  isInGroup = false;
+  groupMembers = [];
+  currentRoomId = null;
+
+  // Disconnect socket fully — fresh start next time
+  if (socket) {
+    socket.removeAllListeners();
+    socket.disconnect();
+    socket = null;
+  }
+
+  // Stop camera
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  document.getElementById('groupInviteBar').classList.remove('show');
-  document.getElementById('saveFriendBar').style.display = 'none';
+
+  // Reset UI
+  const gib = document.getElementById('groupInviteBar');
+  if (gib) gib.classList.remove('show');
+  const sfb = document.getElementById('saveFriendBar');
+  if (sfb) sfb.style.display = 'none';
+  const eb = document.getElementById('expandBtn');
+  if (eb) eb.classList.remove('visible');
+  const gb = document.getElementById('groupBadge');
+  if (gb) gb.classList.remove('visible');
+
+  // Reset video area back to default 2-person layout
+  const va = document.getElementById('videoArea');
+  if (va) {
+    va.className = 'video-area g2';
+    va.innerHTML = `
+      <div class="video-box">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <div class="cam-off-placeholder hidden" id="localPlaceholder"><div class="cam-off-icon">👤</div><div class="cam-off-text">Camera Off</div></div>
+        <div class="video-label">YOU</div>
+        <button class="fs-btn" onclick="openFullscreen('local')">&#x26F6;</button>
+        <button class="cam-switch-btn" onclick="switchCamera()">🔄</button>
+      </div>
+      <div class="video-box">
+        <div class="cam-off-placeholder" id="remotePlaceholder" style="display:flex;"><div class="cam-off-icon">&#x1F47D;</div><div class="cam-off-text">Stranger</div></div>
+        <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
+        <div class="video-label">STRANGER</div>
+        <button class="fs-btn" onclick="openFullscreen('remote')">&#x26F6;</button>
+      </div>
+    `;
+  }
+
   show('landing');
 }
 
@@ -2711,32 +2842,15 @@ let groupInviteReceived = false;
 let pendingGroupCode = '';
 
 function sendGroupInvite() {
-  pendingGroupCode = generateCode();
-  if (socket && socket.connected && !isAIMode) {
-    socket.emit('group-invite', { code: pendingGroupCode });
-    addSystemMsg('👥 Group invite sent! Waiting for stranger to accept...');
-    document.getElementById('groupInviteBar').classList.remove('show');
-    groupInviteSent = true;
-  } else {
-    showToast('Connect to a real stranger first!');
-  }
+  if (!socket || !socket.connected) { showToast('Not connected!'); return; }
+  if (isAIMode) { showToast('Only works with real strangers!'); return; }
+  // Use the expand-request system — same flow, both must agree
+  requestExpand();
+  document.getElementById('groupInviteBar').classList.remove('show');
 }
 
 function dismissGroupInvite() {
   document.getElementById('groupInviteBar').classList.remove('show');
-}
-
-function acceptGroupInvite(code) {
-  if (socket && socket.connected) {
-    socket.emit('group-invite-accept', { code });
-    addSystemMsg('👥 Joining group room...');
-    setTimeout(() => {
-      show('matching');
-      document.querySelector('.match-text').textContent = 'GROUP ROOM';
-      document.querySelector('.match-sub').textContent = 'Setting up group...';
-      socket.emit('join-group-room', { code, maxPeers: 4 });
-    }, 500);
-  }
 }
 
 // ══════════════════════════════════════
@@ -2849,7 +2963,7 @@ async function connectToGroupMember(memberId, initiator) {
   if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
   pc.ontrack = (e) => {
     const vid = document.getElementById('vid-' + memberId);
-    if (vid && e.streams[0]) vid.srcObject = e.streams[0];
+    if (vid && e.streams[0]) attachVideoStream(vid, e.streams[0]);
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) socket.emit('ice-candidate', { candidate: e.candidate, to: memberId });
@@ -3286,28 +3400,6 @@ function initSocketExtra() {
   });
   socket.on('group-room-update', ({ peers, code }) => {
     addSystemMsg(`👥 Group room ${code}: ${peers} / 4 people`);
-  });
-  // Group invite received from stranger
-  socket.on('group-invite', ({ code }) => {
-    pendingGroupCode = code;
-    groupInviteReceived = true;
-    // Show accept/decline in chat
-    const msgs = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = 'msg system';
-    div.innerHTML = `👥 Stranger wants to group chat! <button onclick="acceptGroupInvite('${code}')" style="margin-left:8px;padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;border-radius:2px;cursor:pointer;font-size:11px;">ACCEPT</button>`;
-    msgs.appendChild(div);
-    msgs.scrollTop = msgs.scrollHeight;
-  });
-  // Other person accepted group invite — redirect both
-  socket.on('group-invite-accept', ({ code }) => {
-    addSystemMsg('👥 Both accepted! Setting up group room...');
-    setTimeout(() => {
-      show('matching');
-      document.querySelector('.match-text').textContent = 'GROUP ROOM';
-      document.querySelector('.match-sub').textContent = 'Setting up...';
-      socket.emit('join-group-room', { code, maxPeers: 4 });
-    }, 800);
   });
 }
 
