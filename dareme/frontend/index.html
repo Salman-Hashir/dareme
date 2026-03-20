@@ -1387,6 +1387,118 @@
   }
   .exit-btn:hover { background: rgba(255,45,107,0.2); }
 
+  /* ── GROUP VIDEO GRID ── */
+  .video-area.g2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+  .video-area.g3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  .video-area.g3 .video-box:first-child { grid-column: 1 / 3; }
+  .video-area.g4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+  /* ── EXPAND GROUP BUTTON ── */
+  .expand-btn {
+    padding: 8px 14px;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.3);
+    border-radius: 2px;
+    color: var(--green);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    display: none;
+  }
+  .expand-btn.visible { display: flex; align-items: center; gap: 6px; }
+  .expand-btn:hover { background: rgba(0,255,136,0.18); box-shadow: 0 0 16px rgba(0,255,136,0.2); }
+
+  /* ── CONSENT / VOTE BANNER ── */
+  .group-banner {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(200px);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    z-index: 350;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    min-width: 300px;
+    max-width: 90vw;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .group-banner.show {
+    transform: translateX(-50%) translateY(0);
+    pointer-events: all;
+    opacity: 1;
+  }
+
+  .banner-text { flex: 1; font-size: 13px; white-space: normal; line-height: 1.4; }
+  .banner-text strong { display: block; font-weight: 600; margin-bottom: 2px; }
+
+  .banner-yes {
+    padding: 7px 16px;
+    background: linear-gradient(135deg, var(--green), #00bb66);
+    border: none; border-radius: 3px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px; letter-spacing: 2px;
+    color: #000; cursor: pointer;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .banner-yes:hover { transform: scale(1.04); }
+
+  .banner-no {
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px; letter-spacing: 2px;
+    color: var(--muted); cursor: pointer;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .banner-no:hover { border-color: var(--neon); color: var(--neon); }
+
+  /* ── KICK VOTE BUTTON on video box ── */
+  .kick-btn {
+    position: absolute;
+    top: 10px; left: 10px;
+    padding: 3px 8px;
+    background: rgba(255,45,107,0.15);
+    border: 1px solid rgba(255,45,107,0.3);
+    border-radius: 3px;
+    color: var(--neon);
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+  }
+  .video-box:hover .kick-btn { opacity: 1; }
+
+  /* ── GROUP MEMBER COUNT badge ── */
+  .group-badge {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    background: rgba(168,85,247,0.12);
+    border: 1px solid rgba(168,85,247,0.25);
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 11px;
+    color: #a855f7;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .group-badge.visible { display: flex; }
+
   /* ════════════════════════════════
      RESPONSIVE — FULL REWRITE
   ════════════════════════════════ */
@@ -1743,6 +1855,7 @@
     <span class="topbar-logo">DARE.ME</span>
     <div class="live-badge"><span class="live-dot"></span> LIVE</div>
     <div class="vibe-badge chill" id="topVibeBadge">🟢 CHILL</div>
+    <div class="group-badge" id="groupBadge">👥 <span id="groupCount">2</span>/4</div>
     <div class="timer-badge" id="timerDisplay">00:00</div>
     <button class="exit-btn" onclick="exitToHome()" title="Exit to Home">🏠</button>
     <button class="report-btn" onclick="reportUser()" title="Report">⚑</button>
@@ -1751,7 +1864,7 @@
   <div class="chat-layout">
 
     <!-- Videos -->
-    <div class="video-area">
+    <div class="video-area g2" id="videoArea">
       <div class="video-box">
         <video id="localVideo" autoplay muted playsinline></video>
         <div class="cam-off-placeholder hidden" id="localPlaceholder">
@@ -1778,9 +1891,9 @@
       <button class="ctrl-btn" id="micBtn" onclick="toggleMic()" title="Toggle Mic">🎤</button>
       <button class="ctrl-btn" id="vidBtn" onclick="toggleVideo()" title="Toggle Camera">📷</button>
       <button class="ctrl-btn" onclick="triggerFileSend()" title="Send File">📁</button>
-      <button class="ctrl-btn" onclick="openFriendsModal()" title="Saved Friends">👥</button>
+      <button class="ctrl-btn" onclick="openFriendsModal()" title="Saved Friends">💚</button>
+      <button class="expand-btn" id="expandBtn" onclick="requestExpand()">➕ ADD STRANGER</button>
       <button class="td-btn" onclick="openTD()">🎲 TRUTH OR DARE</button>
-      <button class="ctrl-btn" onclick="openRoomModal()" title="Private/Group Room" style="border-color:rgba(168,85,247,0.4);color:#a855f7;">🚪</button>
       <button class="next-btn" onclick="nextStranger()">NEXT ▸</button>
     </div>
 
@@ -1928,6 +2041,26 @@
 <!-- hidden file input -->
 <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)"/>
 
+<!-- ══════════════ GROUP CONSENT BANNER ══════════════ -->
+<div class="group-banner" id="expandBanner" style="display:none;">
+  <div class="banner-text">
+    <strong>➕ Add a random stranger?</strong>
+    Both must agree to expand the chat
+  </div>
+  <button class="banner-yes" onclick="voteExpand(true)">YES</button>
+  <button class="banner-no" onclick="voteExpand(false)">NO</button>
+</div>
+
+<!-- ══════════════ KICK VOTE BANNER ══════════════ -->
+<div class="group-banner" id="kickBanner" style="display:none;">
+  <div class="banner-text">
+    <strong>🚫 Kick vote started!</strong>
+    <span id="kickBannerText">Vote to remove member</span>
+  </div>
+  <button class="banner-yes" onclick="castKickVote(true)">KICK</button>
+  <button class="banner-no" onclick="castKickVote(false)">KEEP</button>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -2015,6 +2148,7 @@ function initSocket() {
 
   socket.on('connect', () => {
     console.log('✅ Connected to server:', socket.id);
+    initGroupSocketEvents();
   });
 
   socket.on('online-count', (count) => {
@@ -2231,6 +2365,16 @@ function enterChat() {
   // Clear messages
   document.getElementById('messages').innerHTML = '';
   addSystemMsg('Connected to a stranger. Say hi! 👋');
+
+  // Reset group state on each new chat
+  isInGroup = false; groupMembers = []; currentRoomId = null;
+  groupPeers = {};
+  const gb = document.getElementById('groupBadge');
+  if (gb) gb.classList.remove('visible');
+  const eb = document.getElementById('expandBtn');
+  if (eb) eb.classList.remove('visible');
+  // Show expand button after 20s
+  showExpandBtn();
 
   // Start timer
   seconds = 0;
@@ -2586,7 +2730,6 @@ function acceptGroupInvite(code) {
   if (socket && socket.connected) {
     socket.emit('group-invite-accept', { code });
     addSystemMsg('👥 Joining group room...');
-    // Both redirect to group
     setTimeout(() => {
       show('matching');
       document.querySelector('.match-text').textContent = 'GROUP ROOM';
@@ -2595,6 +2738,225 @@ function acceptGroupInvite(code) {
     }, 500);
   }
 }
+
+// ══════════════════════════════════════
+// 👥 GROUP EXPAND SYSTEM
+// ══════════════════════════════════════
+let currentRoomId     = null;
+let groupMembers      = [];
+let groupPeers        = {};
+let pendingKickId     = null;
+let currentVoteRoomId = null;
+let isInGroup         = false;
+
+function showExpandBtn() {
+  setTimeout(() => {
+    if (!isInGroup && !isAIMode && document.getElementById('chatscreen').style.display !== 'none') {
+      document.getElementById('expandBtn').classList.add('visible');
+    }
+  }, 20000);
+}
+
+function requestExpand() {
+  if (!socket || !socket.connected) { showToast('Not connected!'); return; }
+  socket.emit('expand-request');
+  document.getElementById('expandBtn').classList.remove('visible');
+  addSystemMsg('➕ Sent request to add a stranger — waiting for partner to agree...');
+}
+
+function showExpandBanner(from) {
+  const b = document.getElementById('expandBanner');
+  b.style.display = 'flex';
+  b.classList.add('show');
+  setTimeout(() => { b.classList.remove('show'); setTimeout(() => b.style.display = 'none', 300); }, 15000);
+}
+
+function voteExpand(agree) {
+  const b = document.getElementById('expandBanner');
+  b.classList.remove('show');
+  setTimeout(() => b.style.display = 'none', 300);
+  if (!currentRoomId) return;
+  socket.emit('expand-vote', { roomId: currentRoomId, agree });
+  addSystemMsg(agree ? '✅ You agreed! Searching for a stranger...' : '❌ You declined.');
+}
+
+async function onMemberJoined(newMemberId, allMembers) {
+  groupMembers = allMembers;
+  addSystemMsg(`👥 A new stranger joined! (${allMembers.length} people now)`);
+  addGroupVideoBox(newMemberId);
+  const area = document.getElementById('videoArea');
+  if (area) area.className = 'video-area g' + Math.min(allMembers.length, 4);
+  await connectToGroupMember(newMemberId, true);
+  updateGroupUI();
+}
+
+async function onGroupJoined(roomId, members) {
+  currentRoomId = roomId;
+  groupMembers  = members;
+  isInGroup     = true;
+  enterChat();
+  updateGroupUI();
+  addSystemMsg(`👥 You joined a group chat! (${members.length} people)`);
+  buildGroupVideoGrid(members);
+  for (const memberId of members) {
+    if (memberId !== socket.id) await connectToGroupMember(memberId, false);
+  }
+}
+
+function buildGroupVideoGrid(members) {
+  const area = document.getElementById('videoArea');
+  if (!area) return;
+  area.className = 'video-area g' + Math.min(members.length, 4);
+  area.innerHTML = '';
+  members.forEach(memberId => {
+    if (memberId === socket.id) {
+      const d = document.createElement('div');
+      d.className = 'video-box'; d.id = 'vbox-local';
+      d.innerHTML = `<video id="localVideo" autoplay muted playsinline></video>
+        <div class="cam-off-placeholder hidden" id="localPlaceholder"><div class="cam-off-icon">👤</div><div class="cam-off-text">Camera Off</div></div>
+        <div class="video-label">YOU</div>
+        <button class="fs-btn" onclick="openFullscreen('local')">&#x26F6;</button>
+        <button class="cam-switch-btn" onclick="switchCamera()">🔄</button>`;
+      area.appendChild(d);
+      if (localStream) setTimeout(() => { const v = document.getElementById('localVideo'); if(v) v.srcObject = localStream; }, 100);
+    } else { addGroupVideoBox(memberId); }
+  });
+}
+
+function addGroupVideoBox(memberId) {
+  const area = document.getElementById('videoArea');
+  if (!area || document.getElementById('vbox-' + memberId)) return;
+  const d = document.createElement('div');
+  d.className = 'video-box'; d.id = 'vbox-' + memberId;
+  d.innerHTML = `<video id="vid-${memberId}" autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video>
+    <div class="video-label">STRANGER</div>
+    <button class="fs-btn" onclick="openFullscreen('${memberId}')">&#x26F6;</button>
+    <button class="kick-btn" onclick="startKickVote('${memberId}')">VOTE KICK</button>`;
+  area.appendChild(d);
+  area.className = 'video-area g' + Math.min(area.children.length, 4);
+}
+
+function removeGroupVideoBox(memberId) {
+  const box = document.getElementById('vbox-' + memberId);
+  if (box) box.remove();
+  const area = document.getElementById('videoArea');
+  if (area) area.className = 'video-area g' + Math.min(area.children.length, 4);
+}
+
+async function connectToGroupMember(memberId, initiator) {
+  const pc = new RTCPeerConnection(RTC_CONFIG);
+  groupPeers[memberId] = pc;
+  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  pc.ontrack = (e) => {
+    const vid = document.getElementById('vid-' + memberId);
+    if (vid && e.streams[0]) vid.srcObject = e.streams[0];
+  };
+  pc.onicecandidate = (e) => {
+    if (e.candidate) socket.emit('ice-candidate', { candidate: e.candidate, to: memberId });
+  };
+  if (initiator) {
+    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+    await pc.setLocalDescription(offer);
+    socket.emit('webrtc-offer', { offer, to: memberId });
+  }
+}
+
+function updateGroupUI() {
+  const count = groupMembers.length;
+  const badge = document.getElementById('groupBadge');
+  const btn   = document.getElementById('expandBtn');
+  if (count > 2) { badge.classList.add('visible'); document.getElementById('groupCount').textContent = count; }
+  else { badge.classList.remove('visible'); }
+  if (count < 4 && isInGroup) btn.classList.add('visible');
+  else btn.classList.remove('visible');
+}
+
+function startKickVote(targetId) {
+  if (!socket || !currentRoomId) return;
+  if (groupMembers.length < 3) { showToast('Need at least 3 people to kick'); return; }
+  socket.emit('kick-vote', { targetId });
+}
+
+function showKickBanner(targetId, votes, needed) {
+  pendingKickId = targetId;
+  currentVoteRoomId = currentRoomId;
+  document.getElementById('kickBannerText').textContent = `${votes}/${needed} votes needed to kick`;
+  const b = document.getElementById('kickBanner');
+  b.style.display = 'flex';
+  b.classList.add('show');
+  setTimeout(() => { b.classList.remove('show'); setTimeout(() => b.style.display = 'none', 300); }, 20000);
+}
+
+function castKickVote(agree) {
+  const b = document.getElementById('kickBanner');
+  b.classList.remove('show');
+  setTimeout(() => b.style.display = 'none', 300);
+  if (!currentVoteRoomId) return;
+  socket.emit('kick-vote-cast', { roomId: currentVoteRoomId, agree });
+}
+
+function initGroupSocketEvents() {
+  if (!socket) return;
+
+  socket.on('expand-requested', ({ roomId, from }) => {
+    currentRoomId = roomId;
+    if (from !== socket.id) showExpandBanner(from);
+    else addSystemMsg('⏳ Waiting for partner to agree...');
+  });
+
+  socket.on('expand-declined', () => {
+    const b = document.getElementById('expandBanner');
+    b.classList.remove('show'); setTimeout(() => b.style.display='none', 300);
+    addSystemMsg('❌ Partner declined. Just the two of you continues!');
+    document.getElementById('expandBtn').classList.add('visible');
+  });
+
+  socket.on('expand-no-stranger', () => {
+    addSystemMsg('😕 No strangers in queue right now. Try again in a moment!');
+    document.getElementById('expandBtn').classList.add('visible');
+  });
+
+  socket.on('member-joined', ({ newMember, members }) => {
+    groupMembers = members; isInGroup = true;
+    onMemberJoined(newMember, members);
+  });
+
+  socket.on('group-joined', ({ roomId, members }) => {
+    onGroupJoined(roomId, members);
+  });
+
+  socket.on('member-left', ({ socketId, members }) => {
+    groupMembers = members;
+    removeGroupVideoBox(socketId);
+    if (groupPeers[socketId]) { groupPeers[socketId].close(); delete groupPeers[socketId]; }
+    addSystemMsg('👋 A member left the group.');
+    if (members.length <= 2) { isInGroup = false; document.getElementById('groupBadge').classList.remove('visible'); }
+    updateGroupUI();
+  });
+
+  socket.on('group-state', ({ roomId, members, kickVotes }) => {
+    currentRoomId = roomId; groupMembers = members;
+    isInGroup = members.length >= 2;
+    if (kickVotes) showKickBanner(kickVotes.targetId, kickVotes.votes, kickVotes.needed);
+    updateGroupUI();
+  });
+
+  socket.on('kick-vote-started', ({ targetId, votes, needed }) => {
+    showKickBanner(targetId, votes, needed);
+    addSystemMsg(`🗳️ Kick vote started! ${votes}/${needed} votes needed.`);
+  });
+
+  socket.on('kick-vote-update', ({ targetId, votes, needed }) => {
+    document.getElementById('kickBannerText').textContent = `${votes}/${needed} votes to kick`;
+    addSystemMsg(`🗳️ Kick vote: ${votes}/${needed}`);
+  });
+
+  socket.on('you-were-kicked', () => {
+    showToast('You were removed by the group 🚫');
+    setTimeout(() => exitToHome(), 2000);
+  });
+}
+
 let currentFacingMode = 'user'; // 'user' = front, 'environment' = back
 
 async function switchCamera() {
