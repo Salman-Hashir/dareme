@@ -147,7 +147,59 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ── NEXT STRANGER ───────────────────────────────
+  // ── PRIVATE ROOM ────────────────────────────────
+  socket.on('join-private-room', ({ code }) => {
+    const roomKey = 'private_' + code.toUpperCase();
+    if (!waitingQueue.includes(roomKey + ':' + socket.id)) {
+      // Check if someone already waiting in this room
+      const existing = waitingQueue.find(id => id.startsWith(roomKey + ':'));
+      if (existing) {
+        const partnerId = existing.split(':')[1];
+        waitingQueue = waitingQueue.filter(id => id !== existing);
+        matchUsers(socket.id, partnerId);
+        io.to(socket.id).emit('private-room-matched', { role: 'receiver' });
+        io.to(partnerId).emit('private-room-matched', { role: 'initiator' });
+      } else {
+        waitingQueue.push(roomKey + ':' + socket.id);
+        socket.emit('waiting');
+      }
+    }
+    io.emit('online-count', getOnlineCount());
+  });
+
+  // ── GROUP ROOM (up to 4) ────────────────────────
+  socket.on('join-group-room', ({ code, maxPeers }) => {
+    const roomKey = 'group_' + code.toUpperCase();
+    // Find others in this group room
+    const inRoom = Object.keys(activePairs).filter(id => activePairs[id] && activePairs[id].startsWith && activePairs[id].startsWith(roomKey));
+    socket.join(roomKey);
+    // Notify everyone in room
+    io.to(roomKey).emit('group-room-update', {
+      peers: io.sockets.adapter.rooms.get(roomKey)?.size || 1,
+      code: code.toUpperCase()
+    });
+    // Pair with first available person in room for WebRTC
+    const roomMembers = [...(io.sockets.adapter.rooms.get(roomKey) || [])].filter(id => id !== socket.id);
+    if (roomMembers.length > 0) {
+      const partnerId = roomMembers[0];
+      matchUsers(socket.id, partnerId);
+    } else {
+      socket.emit('waiting');
+    }
+    io.emit('online-count', getOnlineCount());
+  });
+
+  // ── GROUP INVITE ─────────────────────────────────
+  socket.on('group-invite', ({ code }) => {
+    const partnerId = activePairs[socket.id];
+    if (partnerId) io.to(partnerId).emit('group-invite', { code });
+  });
+
+  socket.on('group-invite-accept', ({ code }) => {
+    const partnerId = activePairs[socket.id];
+    if (partnerId) io.to(partnerId).emit('group-invite-accept', { code });
+  });
+
   socket.on('next', () => {
     disconnectPair(socket.id);
     // Immediately re-join queue
