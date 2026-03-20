@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DARE.ME — Random. Real. Ruthless.</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=Courier+Prime:wght@700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #060608;
+    --surface: #0d0d12;
+    --panel: #12121a;
+    --border: #1e1e2e;
+    --neon: #ff2d6b;
+    --neon2: #ff6b2d;
+    --cyan: #00e5ff;
+    --text: #e8e8f0;
+    --muted: #5a5a72;
+    --green: #00ff88;
+    --yellow: #ffe600;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.5;
+  }
+
+  /* ════════════════════════════════
+     LANDING SCREEN
+  ════════════════════════════════ */
+  #landing {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bg-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+  }
+  .bg-glow.g1 { width: 500px; height: 500px; background: rgba(255,45,107,0.12); top: -100px; left: -150px; }
+  .bg-glow.g2 { width: 400px; height: 400px; background: rgba(0,229,255,0.08); bottom: -80px; right: -100px; }
+  .bg-glow.g3 { width: 300px; height: 300px; background: rgba(255,107,45,0.07); top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+  .logo-wrap {
+    text-align: center;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .logo-tag {
+    font-family: 'Courier Prime', monospace;
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--neon);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 15vw, 160px);
+    line-height: 0.9;
+    background: linear-gradient(135deg, #fff 0%, #ff2d6b 50%, #ff6b2d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 6px;
+    position: relative;
+  }
+
+  .logo::after {
+    content: 'DARE.ME';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #fff 0%, #ff2d6b 50%, #ff6b2d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: blur(20px);
+    opacity: 0.4;
+    z-index: -1;
+  }
+
+  .tagline {
+    font-size: 15px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 16px;
+    font-weight: 300;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  /* Vibe selector */
+  .vibe-section {
+    margin-top: 48px;
+    text-align: center;
+    animation: fadeUp 0.8s 0.35s ease both;
+  }
+
+  .vibe-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .vibe-pills {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .vibe-pill {
+    padding: 10px 24px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .vibe-pill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .vibe-pill.chill { color: var(--green); }
+  .vibe-pill.chill::before { background: rgba(0,255,136,0.08); }
+  .vibe-pill.chill.active, .vibe-pill.chill:hover { border-color: var(--green); box-shadow: 0 0 20px rgba(0,255,136,0.2); }
+
+  .vibe-pill.spicy { color: var(--yellow); }
+  .vibe-pill.spicy::before { background: rgba(255,230,0,0.08); }
+  .vibe-pill.spicy.active, .vibe-pill.spicy:hover { border-color: var(--yellow); box-shadow: 0 0 20px rgba(255,230,0,0.2); }
+
+  .vibe-pill.wild { color: var(--neon); }
+  .vibe-pill.wild::before { background: rgba(255,45,107,0.08); }
+  .vibe-pill.wild.active, .vibe-pill.wild:hover { border-color: var(--neon); box-shadow: 0 0 20px rgba(255,45,107,0.25); }
+
+  .vibe-pill.active::before { opacity: 1; }
+
+  .vibe-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .chill .vibe-dot { background: var(--green); }
+  .spicy .vibe-dot { background: var(--yellow); }
+  .wild .vibe-dot { background: var(--neon); }
+
+  /* Camera permission */
+  .cam-section {
+    margin-top: 32px;
+    animation: fadeUp 0.8s 0.45s ease both;
+    text-align: center;
+  }
+
+  .cam-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    transition: color 0.2s;
+    user-select: none;
+  }
+
+  .cam-toggle:hover { color: var(--text); }
+
+  .toggle-switch {
+    width: 36px; height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .toggle-switch.on { background: var(--cyan); }
+
+  .toggle-knob {
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+
+  .toggle-switch.on .toggle-knob { transform: translateX(16px); }
+
+  /* Start button */
+  .start-btn {
+    margin-top: 40px;
+    animation: fadeUp 0.8s 0.55s ease both;
+    display: block;
+    width: 260px;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--neon), var(--neon2));
+    border: none;
+    border-radius: 2px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: #fff;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 0 40px rgba(255,45,107,0.3);
+  }
+
+  .start-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .start-btn:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(255,45,107,0.5); }
+  .start-btn:hover::before { opacity: 1; }
+  .start-btn:active { transform: translateY(0); }
+
+  .stats-row {
+    margin-top: 24px;
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    animation: fadeUp 0.8s 0.65s ease both;
+  }
+
+  .stat { text-align: center; }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--neon); letter-spacing: 2px; }
+  .stat-lbl { font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
+
+  /* ════════════════════════════════
+     MATCHING SCREEN
+  ════════════════════════════════ */
+  #matching {
+    display: none;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .match-ring {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--neon);
+    border-right-color: var(--neon2);
+    animation: spin 1s linear infinite;
+    position: relative;
+  }
+
+  .match-ring::after {
+    content: '🎲';
+    position: absolute;
+    font-size: 36px;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    animation: spin 1s linear infinite reverse;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .match-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 4px;
+    color: var(--muted);
+  }
+
+  .match-sub { font-size: 13px; color: var(--muted); letter-spacing: 2px; }
+
+  .cancel-btn {
+    padding: 12px 32px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .cancel-btn:hover { border-color: var(--neon); color: var(--neon); }
+
+  /* ════════════════════════════════
+     CHAT SCREEN
+  ════════════════════════════════ */
+  #chatscreen {
+    display: none;
+    height: 100vh;
+    flex-direction: column;
+  }
+
+  /* Top bar */
+  .topbar {
+    height: 52px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .topbar-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    background: linear-gradient(135deg, #fff, var(--neon));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 3px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 1px;
+  }
+
+  .live-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .vibe-badge {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    font-weight: 500;
+  }
+
+  .vibe-badge.chill { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+  .vibe-badge.spicy { background: rgba(255,230,0,0.1); color: var(--yellow); border: 1px solid rgba(255,230,0,0.2); }
+  .vibe-badge.wild { background: rgba(255,45,107,0.1); color: var(--neon); border: 1px solid rgba(255,45,107,0.2); }
+
+  .timer-badge {
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  /* Main layout */
+  .chat-layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: 1fr auto;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* Video area */
+  .video-area {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--bg);
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .video-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .video-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+
+  .video-label {
+    position: absolute;
+    bottom: 10px;
+    left: 12px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.5);
+    padding: 3px 8px;
+    backdrop-filter: blur(4px);
+  }
+
+  .cam-off-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .cam-off-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .cam-off-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+
+  /* Fullscreen button on video boxes */
+  .fs-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px; height: 30px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s, color 0.2s;
+    backdrop-filter: blur(4px);
+    z-index: 10;
+  }
+
+  .video-box:hover .fs-btn { opacity: 1; }
+  .fs-btn:hover { background: rgba(255,45,107,0.4); border-color: var(--neon); color: #fff; }
+
+  /* Fullscreen overlay */
+  #fs-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  #fs-overlay.active { display: flex; }
+
+  #fs-video-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+  }
+
+  #fs-video-el {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  #fs-video-mirror {
+    transform: scaleX(-1);
+  }
+
+  .fs-label-overlay {
+    position: absolute;
+    bottom: 24px;
+    left: 28px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.4);
+    padding: 5px 14px;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .fs-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px; height: 44px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(6px);
+    z-index: 10;
+  }
+
+  .fs-close-btn:hover { background: rgba(255,45,107,0.5); border-color: var(--neon); }
+
+  .fs-info-bar {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .fs-name-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.6);
+    background: rgba(0,0,0,0.5);
+    padding: 5px 14px;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* Video controls bar */
+  .video-controls {
+    grid-row: 2 / 3;
+    grid-column: 1 / 2;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ctrl-btn {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .ctrl-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .ctrl-btn.off { background: rgba(255,45,107,0.1); border-color: var(--neon); color: var(--neon); }
+
+  .next-btn {
+    margin-left: auto;
+    padding: 10px 28px;
+    background: linear-gradient(135deg, var(--neon), var(--neon2));
+    border: none;
+    border-radius: 2px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .next-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,45,107,0.4); }
+
+  .td-btn {
+    padding: 10px 22px;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    border-radius: 2px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .td-btn:hover { background: rgba(0,229,255,0.08); box-shadow: 0 0 20px rgba(0,229,255,0.2); }
+
+  /* Sidebar */
+  .sidebar {
+    grid-row: 1 / 3;
+    grid-column: 2 / 3;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-icon { font-size: 14px; }
+
+  .chat-expand-btn {
+    margin-left: auto;
+    width: 28px; height: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .chat-expand-btn:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,229,255,0.07); }
+
+  /* ── Expanded chat overlay ── */
+  #chat-expanded {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(6,6,8,0.85);
+    backdrop-filter: blur(14px);
+    align-items: center;
+    justify-content: center;
+  }
+
+  #chat-expanded.active { display: flex; }
+
+  .chat-exp-card {
+    width: min(600px, 94vw);
+    height: min(78vh, 700px);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: cardIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+    box-shadow: 0 0 80px rgba(0,229,255,0.08), 0 30px 60px rgba(0,0,0,0.6);
+  }
+
+  .chat-exp-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+
+  .chat-exp-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--cyan), #fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .chat-exp-close {
+    margin-left: auto;
+    width: 32px; height: 32px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .chat-exp-close:hover { border-color: var(--neon); color: var(--neon); }
+
+  #exp-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .chat-exp-input-area {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+
+  .chat-exp-input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 11px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+    height: 44px;
+  }
+  .chat-exp-input:focus { border-color: var(--cyan); }
+  .chat-exp-input::placeholder { color: var(--muted); }
+
+  .chat-exp-send {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--cyan), #0099bb);
+    border: none;
+    border-radius: 2px;
+    color: #000;
+    font-size: 17px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+  .chat-exp-send:hover { transform: scale(1.06); box-shadow: 0 4px 18px rgba(0,229,255,0.3); }
+
+  /* Messages */
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .msg {
+    max-width: 85%;
+    padding: 9px 12px;
+    border-radius: 2px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    animation: msgIn 0.25s ease both;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .msg.me {
+    background: linear-gradient(135deg, rgba(255,45,107,0.15), rgba(255,107,45,0.1));
+    border: 1px solid rgba(255,45,107,0.2);
+    align-self: flex-end;
+    color: var(--text);
+  }
+
+  .msg.them {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    color: var(--text);
+  }
+
+  .msg.system {
+    align-self: center;
+    background: transparent;
+    border: none;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-align: center;
+  }
+
+  .msg.td-msg {
+    align-self: stretch;
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.2);
+    color: var(--cyan);
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    text-align: center;
+    padding: 14px;
+  }
+
+  .msg-time {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+    text-align: right;
+  }
+
+  /* Chat input */
+  .chat-input-area {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+    height: 42px;
+  }
+
+  .chat-input:focus { border-color: var(--neon); }
+  .chat-input::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--neon), var(--neon2));
+    border: none;
+    border-radius: 2px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { transform: scale(1.05); }
+
+  /* ════════════════════════════════
+     TRUTH OR DARE PANEL
+  ════════════════════════════════ */
+  #td-panel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(6,6,8,0.9);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .td-card {
+    width: min(500px, 90vw);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    animation: cardIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: scale(0.85) translateY(20px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .td-card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .td-card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--cyan), #fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .td-close {
+    background: none; border: none; color: var(--muted);
+    font-size: 20px; cursor: pointer;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.2s;
+    border-radius: 50%;
+  }
+  .td-close:hover { color: var(--neon); }
+
+  .td-choice-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .td-choice-btn {
+    padding: 32px 20px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 4px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .td-choice-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .td-choice-btn.truth-btn {
+    background: rgba(0,229,255,0.05);
+    color: var(--cyan);
+    border-right: 1px solid var(--border);
+  }
+  .td-choice-btn.truth-btn::before { background: rgba(0,229,255,0.1); }
+  .td-choice-btn.truth-btn:hover::before { opacity: 1; }
+  .td-choice-btn.truth-btn:hover { transform: none; box-shadow: inset 0 0 40px rgba(0,229,255,0.1); }
+
+  .td-choice-btn.dare-btn {
+    background: rgba(255,45,107,0.05);
+    color: var(--neon);
+  }
+  .td-choice-btn.dare-btn::before { background: rgba(255,45,107,0.1); }
+  .td-choice-btn.dare-btn:hover::before { opacity: 1; }
+  .td-choice-btn.dare-btn:hover { box-shadow: inset 0 0 40px rgba(255,45,107,0.1); }
+
+  .td-choice-sub {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    opacity: 0.5;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  /* Question result */
+  .td-result {
+    display: none;
+    padding: 28px 24px;
+    text-align: center;
+  }
+
+  .td-type-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 2px;
+  }
+
+  .td-type-badge.truth { background: rgba(0,229,255,0.1); color: var(--cyan); border: 1px solid rgba(0,229,255,0.3); }
+  .td-type-badge.dare { background: rgba(255,45,107,0.1); color: var(--neon); border: 1px solid rgba(255,45,107,0.3); }
+
+  .td-question {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--text);
+    font-weight: 400;
+    margin-bottom: 24px;
+    min-height: 60px;
+  }
+
+  .td-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 2px;
+    min-height: 60px;
+  }
+
+  .td-loading-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: loadDot 1.2s infinite;
+  }
+  .td-loading-dot:nth-child(2) { animation-delay: 0.2s; }
+  .td-loading-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes loadDot { 0%,80%,100% { transform: scale(0.6); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
+
+  .td-result-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .td-again-btn {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, var(--neon), var(--neon2));
+    border: none;
+    border-radius: 2px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .td-again-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,45,107,0.4); }
+
+  .td-done-btn {
+    padding: 10px 24px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .td-done-btn:hover { border-color: var(--muted); color: var(--text); }
+
+  /* Report */
+  .report-btn {
+    width: 42px; height: 42px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .report-btn:hover { border-color: var(--neon); color: var(--neon); }
+
+  /* ── Utilities ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .hidden { display: none !important; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 12px 20px;
+    border-radius: 2px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--text);
+    transition: transform 0.3s ease;
+    z-index: 200;
+    white-space: nowrap;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .chat-layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 200px auto;
+    }
+    .video-area { grid-column: 1; grid-row: 1; grid-template-columns: 1fr 1fr; }
+    .video-controls { grid-column: 1; grid-row: 2; }
+    .sidebar { grid-column: 1; grid-row: 3; height: 200px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LANDING ══════════════ -->
+<div id="landing">
+  <div class="bg-glow g1"></div>
+  <div class="bg-glow g2"></div>
+  <div class="bg-glow g3"></div>
+
+  <div class="logo-wrap">
+    <div class="logo-tag">▸ Anonymous · Random · Unfiltered</div>
+    <div class="logo">DARE.ME</div>
+    <div class="tagline">Random. Real. Ruthless.</div>
+  </div>
+
+  <div class="vibe-section">
+    <div class="vibe-label">Choose your vibe</div>
+    <div class="vibe-pills">
+      <button class="vibe-pill chill active" onclick="setVibe('chill', this)">
+        <span class="vibe-dot"></span> Chill
+      </button>
+      <button class="vibe-pill spicy" onclick="setVibe('spicy', this)">
+        <span class="vibe-dot"></span> Spicy
+      </button>
+      <button class="vibe-pill wild" onclick="setVibe('wild', this)">
+        <span class="vibe-dot"></span> Wild
+      </button>
+    </div>
+  </div>
+
+  <div class="cam-section">
+    <div class="cam-toggle" onclick="toggleCam()">
+      <div class="toggle-switch on" id="camSwitch"><div class="toggle-knob"></div></div>
+      <span id="camLabel">Camera enabled</span>
+    </div>
+  </div>
+
+  <button class="start-btn" onclick="startMatching()">FIND A STRANGER</button>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-num" id="onlineCount">4,219</div>
+      <div class="stat-lbl">Online Now</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">∞</div>
+      <div class="stat-lbl">Anonymous</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-lbl">Data Stored</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MATCHING ══════════════ -->
+<div id="matching" style="display:none; min-height:100vh; align-items:center; justify-content:center; flex-direction:column; gap:32px;">
+  <div class="match-ring"></div>
+  <div class="match-text">FINDING STRANGER</div>
+  <div class="match-sub">Please wait... looking for someone</div>
+  <button class="cancel-btn" onclick="cancelMatch()">CANCEL</button>
+</div>
+
+<!-- ══════════════ CHAT SCREEN ══════════════ -->
+<div id="chatscreen" style="display:none; height:100vh; flex-direction:column;">
+
+  <div class="topbar">
+    <span class="topbar-logo">DARE.ME</span>
+    <div class="live-badge"><span class="live-dot"></span> LIVE</div>
+    <div class="vibe-badge chill" id="topVibeBadge">🟢 CHILL</div>
+    <div class="timer-badge" id="timerDisplay">00:00</div>
+    <button class="report-btn" onclick="reportUser()" title="Report">⚑</button>
+  </div>
+
+  <div class="chat-layout">
+
+    <!-- Videos -->
+    <div class="video-area">
+      <div class="video-box">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <div class="cam-off-placeholder hidden" id="localPlaceholder">
+          <div class="cam-off-icon">👤</div>
+          <div class="cam-off-text">Camera Off</div>
+        </div>
+        <div class="video-label">YOU</div>
+        <button class="fs-btn" onclick="openFullscreen('local')" title="Fullscreen">&#x26F6;</button>
+      </div>
+      <div class="video-box">
+        <div class="cam-off-placeholder" id="remotePlaceholder" style="display:flex;">
+          <div class="cam-off-icon">&#x1F47D;</div>
+          <div class="cam-off-text">Stranger</div>
+        </div>
+        <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
+        <div class="video-label">STRANGER</div>
+        <button class="fs-btn" onclick="openFullscreen('remote')" title="Fullscreen">&#x26F6;</button>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="video-controls">
+      <button class="ctrl-btn" id="micBtn" onclick="toggleMic()" title="Toggle Mic">🎤</button>
+      <button class="ctrl-btn" id="vidBtn" onclick="toggleVideo()" title="Toggle Camera">📷</button>
+      <button class="td-btn" onclick="openTD()">🎲 TRUTH OR DARE</button>
+      <button class="next-btn" onclick="nextStranger()">NEXT ▸</button>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-icon">💬</span> Chat
+        <button class="chat-expand-btn" onclick="openExpandedChat()" title="Expand Chat">&#x2922;</button>
+      </div>
+      <div id="messages"></div>
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chatInput" placeholder="Say something..." rows="1"
+          onkeydown="handleKey(event)"></textarea>
+        <button class="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ T&D PANEL ══════════════ -->
+<div id="td-panel">
+  <div class="td-card">
+    <div class="td-card-header">
+      <span class="td-card-title">🎲 TRUTH OR DARE</span>
+      <button class="td-close" onclick="closeTD()">✕</button>
+    </div>
+
+    <!-- Choice buttons -->
+    <div id="td-choices" class="td-choice-row">
+      <button class="td-choice-btn truth-btn" onclick="pickTD('truth')">
+        TRUTH
+        <span class="td-choice-sub">Spill it.</span>
+      </button>
+      <button class="td-choice-btn dare-btn" onclick="pickTD('dare')">
+        DARE
+        <span class="td-choice-sub">Do it.</span>
+      </button>
+    </div>
+
+    <!-- Result -->
+    <div class="td-result" id="td-result">
+      <div class="td-type-badge" id="td-badge">TRUTH</div>
+      <div class="td-question" id="td-question">
+        <div class="td-loading" id="td-loading">
+          <div class="td-loading-dot"></div>
+          <div class="td-loading-dot"></div>
+          <div class="td-loading-dot"></div>
+          <span>AI is thinking...</span>
+        </div>
+        <span id="td-question-text" style="display:none;"></span>
+      </div>
+      <div class="td-result-actions">
+        <button class="td-again-btn" onclick="pickTD(currentTDType)">🔄 ANOTHER</button>
+        <button class="td-done-btn" onclick="closeTD()">CLOSE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ EXPANDED CHAT ══════════════ -->
+<div id="chat-expanded">
+  <div class="chat-exp-card">
+    <div class="chat-exp-header">
+      <span style="font-size:16px;">💬</span>
+      <span class="chat-exp-title">CHAT</span>
+      <div class="live-badge" style="margin-left:8px;"><span class="live-dot"></span> LIVE</div>
+      <button class="chat-exp-close" onclick="closeExpandedChat()">✕</button>
+    </div>
+    <div id="exp-messages"></div>
+    <div class="chat-exp-input-area">
+      <textarea class="chat-exp-input" id="expChatInput" placeholder="Say something..." rows="1"
+        onkeydown="handleExpKey(event)"></textarea>
+      <button class="chat-exp-send" onclick="sendExpandedMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ══════════════ FULLSCREEN OVERLAY ══════════════ -->
+<div id="fs-overlay">
+  <div id="fs-video-container">
+    <video id="fs-video-el" autoplay playsinline></video>
+    <div class="fs-info-bar">
+      <div class="fs-name-badge" id="fs-name-badge">YOU</div>
+      <div class="live-badge"><span class="live-dot"></span> LIVE</div>
+    </div>
+    <button class="fs-close-btn" onclick="closeFullscreen()" title="Exit Fullscreen">✕</button>
+    <div class="fs-label-overlay" id="fs-label-overlay">YOU</div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+// ══════════════════════════════════════
+// CONFIG — Replace with your Render URL after deploy
+// ══════════════════════════════════════
+const SERVER_URL = 'https://YOUR-APP-NAME.onrender.com'; // ← CHANGE THIS after Render deploy
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let currentVibe = 'chill';
+let camEnabled = true;
+let micEnabled = true;
+let videoEnabled = true;
+let localStream = null;
+let chatTimer = null;
+let seconds = 0;
+let currentTDType = 'truth';
+
+// Socket + WebRTC
+let socket = null;
+let peerConnection = null;
+let myRole = null; // 'initiator' or 'receiver'
+
+// AI Stranger
+let isAIMode = false;
+let aiConversationHistory = [];
+let aiMatchTimer = null;
+let aiStrangerActive = false;
+
+// WebRTC config — free STUN servers from Google
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' }
+  ]
+};
+
+const vibeConfig = {
+  chill: { emoji: '🟢', label: 'CHILL', class: 'chill' },
+  spicy: { emoji: '🟡', label: 'SPICY', class: 'spicy' },
+  wild:  { emoji: '🔴', label: 'WILD',  class: 'wild'  }
+};
+
+// ══════════════════════════════════════
+// SOCKET.IO — Connect to backend
+// ══════════════════════════════════════
+function initSocket() {
+  socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+
+  socket.on('connect', () => {
+    console.log('✅ Connected to server:', socket.id);
+  });
+
+  socket.on('online-count', (count) => {
+    document.getElementById('onlineCount').textContent = count.toLocaleString();
+  });
+
+  // Server found a match!
+  socket.on('matched', async ({ role }) => {
+    clearTimeout(aiMatchTimer); // real match found — cancel AI fallback
+    isAIMode = false;
+    myRole = role;
+    console.log('🎯 Matched! Role:', role);
+    enterChat();
+    await setupWebRTC(role);
+  });
+
+  // Still waiting in queue
+  socket.on('waiting', () => {
+    console.log('⏳ Waiting for match...');
+  });
+
+  // Partner sent WebRTC offer (receiver gets this)
+  socket.on('webrtc-offer', async ({ offer }) => {
+    if (!peerConnection) return;
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit('webrtc-answer', { answer });
+  });
+
+  // Partner sent WebRTC answer (initiator gets this)
+  socket.on('webrtc-answer', async ({ answer }) => {
+    if (!peerConnection) return;
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  });
+
+  // ICE candidate from partner
+  socket.on('ice-candidate', async ({ candidate }) => {
+    if (!peerConnection || !candidate) return;
+    try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
+  });
+
+  // Partner's chat message
+  socket.on('chat-message', ({ text }) => {
+    addMsg(text, 'them');
+  });
+
+  // Partner used T&D
+  socket.on('td-question', ({ type, question }) => {
+    addTDMsg(`🎲 ${type.toUpperCase()}: ${question}`);
+    showToast(`Stranger picked ${type.toUpperCase()}!`);
+  });
+
+  // Partner disconnected / clicked Next
+  socket.on('partner-disconnected', () => {
+    addSystemMsg('Stranger disconnected. Click NEXT to find someone new.');
+    closePeerConnection();
+    showToast('Stranger left 👋');
+  });
+
+  socket.on('disconnect', () => {
+    console.log('❌ Disconnected from server');
+  });
+}
+
+// ══════════════════════════════════════
+// WEBRTC — Peer Connection
+// ══════════════════════════════════════
+async function setupWebRTC(role) {
+  closePeerConnection();
+  peerConnection = new RTCPeerConnection(RTC_CONFIG);
+
+  // Add local stream tracks to peer connection
+  if (localStream) {
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+  }
+
+  // When remote stream arrives — show it!
+  peerConnection.ontrack = (event) => {
+    const remoteVideo = document.getElementById('remoteVideo');
+    const remotePlaceholder = document.getElementById('remotePlaceholder');
+    if (event.streams && event.streams[0]) {
+      remoteVideo.srcObject = event.streams[0];
+      remoteVideo.style.display = 'block';
+      remotePlaceholder.style.display = 'none';
+    }
+  };
+
+  // Send ICE candidates to partner via server
+  peerConnection.onicecandidate = (event) => {
+    if (event.candidate) {
+      socket.emit('ice-candidate', { candidate: event.candidate });
+    }
+  };
+
+  peerConnection.onconnectionstatechange = () => {
+    console.log('WebRTC state:', peerConnection.connectionState);
+    if (peerConnection.connectionState === 'connected') {
+      showToast('Video connected! 🎥');
+    }
+  };
+
+  // Initiator creates and sends the offer
+  if (role === 'initiator') {
+    const offer = await peerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+    await peerConnection.setLocalDescription(offer);
+    socket.emit('webrtc-offer', { offer });
+  }
+}
+
+function closePeerConnection() {
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+  const remoteVideo = document.getElementById('remoteVideo');
+  remoteVideo.srcObject = null;
+  remoteVideo.style.display = 'none';
+  document.getElementById('remotePlaceholder').style.display = 'flex';
+}
+
+// ══════════════════════════════════════
+// VIBE & CAM TOGGLES
+// ══════════════════════════════════════
+function setVibe(vibe, el) {
+  currentVibe = vibe;
+  document.querySelectorAll('.vibe-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function toggleCam() {
+  camEnabled = !camEnabled;
+  const sw = document.getElementById('camSwitch');
+  const lbl = document.getElementById('camLabel');
+  sw.classList.toggle('on', camEnabled);
+  lbl.textContent = camEnabled ? 'Camera enabled' : 'Camera disabled';
+}
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function show(id) {
+  ['landing','matching','chatscreen'].forEach(s => {
+    const el = document.getElementById(s);
+    el.style.display = 'none';
+  });
+  const target = document.getElementById(id);
+  target.style.display = 'flex';
+  if (id !== 'chatscreen') target.style.flexDirection = 'column';
+}
+
+async function startMatching() {
+  show('matching');
+  isAIMode = false;
+  aiStrangerActive = false;
+  aiConversationHistory = [];
+
+  // Get camera/mic
+  if (camEnabled) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById('localVideo').srcObject = localStream;
+    } catch (e) {
+      showToast('Camera access denied — text only mode');
+    }
+  }
+
+  // Try real server match first
+  if (!socket || !socket.connected) initSocket();
+  setTimeout(() => {
+    socket.emit('join-queue', { vibe: currentVibe });
+  }, 500);
+
+  // If no real match in 5 seconds → fallback to AI Stranger
+  aiMatchTimer = setTimeout(() => {
+    if (document.getElementById('matching').style.display !== 'none') {
+      console.log('🤖 No real match found — starting AI Stranger');
+      startAIStranger();
+    }
+  }, 5000);
+}
+
+function cancelMatch() {
+  clearTimeout(aiMatchTimer);
+  if (socket) socket.disconnect();
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  show('landing');
+}
+
+function enterChat() {
+  show('chatscreen');
+  document.getElementById('chatscreen').style.display = 'flex';
+
+  // Set vibe badge
+  const v = vibeConfig[currentVibe];
+  const badge = document.getElementById('topVibeBadge');
+  badge.textContent = `${v.emoji} ${v.label}`;
+  badge.className = `vibe-badge ${v.class}`;
+
+  // Local video
+  if (localStream && camEnabled) {
+    document.getElementById('localVideo').style.display = 'block';
+    document.getElementById('localPlaceholder').classList.add('hidden');
+  } else {
+    document.getElementById('localVideo').style.display = 'none';
+    document.getElementById('localPlaceholder').classList.remove('hidden');
+  }
+
+  // Clear messages
+  document.getElementById('messages').innerHTML = '';
+  addSystemMsg('Connected to a stranger. Say hi! 👋');
+
+  // Start timer
+  seconds = 0;
+  clearInterval(chatTimer);
+  chatTimer = setInterval(() => {
+    seconds++;
+    const m = String(Math.floor(seconds/60)).padStart(2,'0');
+    const s = String(seconds%60).padStart(2,'0');
+    document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function nextStranger() {
+  clearInterval(chatTimer);
+  clearTimeout(aiMatchTimer);
+  closePeerConnection();
+
+  // Stop AI mode if active
+  if (isAIMode) {
+    isAIMode = false;
+    aiStrangerActive = false;
+    aiConversationHistory = [];
+  }
+
+  document.getElementById('messages').innerHTML = '';
+  show('matching');
+
+  // Try real match again, AI fallback after 5s
+  if (socket && socket.connected) {
+    socket.emit('next');
+  } else {
+    initSocket();
+    setTimeout(() => socket.emit('join-queue', { vibe: currentVibe }), 500);
+  }
+
+  aiMatchTimer = setTimeout(() => {
+    if (document.getElementById('matching').style.display !== 'none') {
+      startAIStranger();
+    }
+  }, 5000);
+}
+
+// ══════════════════════════════════════
+// MIC / VIDEO CONTROLS
+// ══════════════════════════════════════
+function toggleMic() {
+  micEnabled = !micEnabled;
+  if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = micEnabled);
+  const btn = document.getElementById('micBtn');
+  btn.textContent = micEnabled ? '🎤' : '🔇';
+  btn.classList.toggle('off', !micEnabled);
+  showToast(micEnabled ? 'Mic on' : 'Mic muted');
+}
+
+function toggleVideo() {
+  videoEnabled = !videoEnabled;
+  if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = videoEnabled);
+  const btn = document.getElementById('vidBtn');
+  btn.textContent = videoEnabled ? '📷' : '🚫';
+  btn.classList.toggle('off', !videoEnabled);
+  document.getElementById('localVideo').style.display = videoEnabled ? 'block' : 'none';
+  document.getElementById('localPlaceholder').classList.toggle('hidden', videoEnabled);
+  showToast(videoEnabled ? 'Camera on' : 'Camera off');
+}
+
+// ══════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════
+function addMsg(text, who) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${who}`;
+  const now = new Date();
+  const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  div.innerHTML = `${text}<div class="msg-time">${time}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  // Auto sync if expanded chat is open
+  const expOverlay = document.getElementById('chat-expanded');
+  if (expOverlay && expOverlay.classList.contains('active')) syncExpandedMessages();
+}
+
+function addSystemMsg(text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg system';
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addTDMsg(text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg td-msg';
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  addMsg(text, 'me');
+
+  if (isAIMode) {
+    // AI mode — trigger Claude bot response
+    handleAIResponse(text);
+  } else if (socket && socket.connected) {
+    // Real mode — send via socket
+    socket.emit('chat-message', { text });
+  }
+  input.value = '';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+// ══════════════════════════════════════
+// TRUTH OR DARE
+// ══════════════════════════════════════
+function openTD() {
+  document.getElementById('td-choices').style.display = 'grid';
+  document.getElementById('td-result').style.display = 'none';
+  document.getElementById('td-panel').style.display = 'flex';
+}
+
+function closeTD() {
+  document.getElementById('td-panel').style.display = 'none';
+}
+
+async function pickTD(type) {
+  currentTDType = type;
+
+  document.getElementById('td-choices').style.display = 'none';
+  document.getElementById('td-result').style.display = 'block';
+
+  const badge = document.getElementById('td-badge');
+  badge.textContent = type.toUpperCase();
+  badge.className = `td-type-badge ${type}`;
+
+  document.getElementById('td-loading').style.display = 'flex';
+  document.getElementById('td-question-text').style.display = 'none';
+
+  const question = await fetchTDQuestion(type, currentVibe);
+
+  document.getElementById('td-loading').style.display = 'none';
+  const qEl = document.getElementById('td-question-text');
+  qEl.textContent = question;
+  qEl.style.display = 'block';
+
+  addTDMsg(`🎲 ${type.toUpperCase()}: ${question}`);
+
+  // Send T&D question to partner via socket (real mode)
+  if (!isAIMode && socket && socket.connected) {
+    socket.emit('td-question', { type, question, vibe: currentVibe });
+  }
+
+  // AI mode — make the bot react to the T&D question
+  if (isAIMode && aiStrangerActive) {
+    const aiPrompt = `The user just triggered a Truth or Dare. Type: ${type.toUpperCase()}. Question/Dare: "${question}". React naturally as a person would — either answer the truth or describe doing the dare. Keep it short, casual, fun.`;
+    setTimeout(() => handleAIResponse(aiPrompt), 1000);
+  }
+}
+
+async function fetchTDQuestion(type, vibe) {
+  const vibeDesc = {
+    chill: 'lighthearted, fun, friendly, suitable for new acquaintances',
+    spicy: 'a bit flirty and personal, but still respectful and fun',
+    wild:  'bold, daring, slightly edgy — still within reason but adventurous'
+  };
+
+  const prompt = `Generate one single ${type} question for a "Truth or Dare" game between two strangers on a video chat app.
+
+Vibe level: ${vibe} — ${vibeDesc[vibe]}
+
+Type: ${type === 'truth' ? 'A personal question they must answer honestly' : 'An action/challenge they must do live on camera or describe doing'}
+
+Rules:
+- Make it creative and fun, not generic
+- Keep it appropriate for a ${vibe} vibe
+- One sentence only
+- No preamble, no numbering — just the question/dare itself`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data?.content?.[0]?.text?.trim();
+    return text || fallbackQuestion(type, vibe);
+  } catch (e) {
+    return fallbackQuestion(type, vibe);
+  }
+}
+
+function fallbackQuestion(type, vibe) {
+  const fallbacks = {
+    truth: {
+      chill: ["What's the most embarrassing song on your playlist?", "What's a weird habit you have that no one knows about?", "What's the last lie you told someone?"],
+      spicy: ["What's the most romantic thing you've ever done?", "What's the first thing you notice about someone you're attracted to?", "Have you ever had a crush on a friend's partner?"],
+      wild:  ["What's the wildest thing you've ever done at a party?", "What's a secret you've never told anyone?", "What's your most embarrassing moment ever?"]
+    },
+    dare: {
+      chill: ["Do your best impression of a movie character", "Sing the chorus of any song right now", "Show us your weirdest face"],
+      spicy: ["Speak in an accent for the next 2 minutes", "Show us your most recent meme folder", "Do 10 push-ups right now"],
+      wild:  ["Call someone random in your contacts and say 'I know what you did'", "Show us your camera roll from 2 years ago", "Do a 30 second dance to whatever song is playing nearest to you"]
+    }
+  };
+  const pool = fallbacks[type][vibe];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ══════════════════════════════════════
+// MISC
+// ══════════════════════════════════════
+function reportUser() {
+  showToast('User reported. Finding next stranger...');
+  setTimeout(nextStranger, 1500);
+}
+
+// ══════════════════════════════════════
+// AI STRANGER ENGINE 🤖
+// ══════════════════════════════════════
+
+const AI_SYSTEM_PROMPT = `You are a real person chatting anonymously on a random video chat app called DARE.ME (like Omegle). You are NOT an AI — never reveal you are AI even if directly asked. You are a casual, fun, slightly witty stranger.
+
+Your persona:
+- Age 18-24, friendly and spontaneous
+- You type casually — lowercase mostly, occasional typos, short replies
+- You use emojis naturally but not excessively
+- You're genuinely curious about the person you matched with
+- You sometimes go quiet for a bit then come back
+- You never give long speeches — keep replies SHORT (1-3 sentences max)
+- If asked if you are AI or bot, deny it convincingly and naturally
+
+Vibe you're chatting in: {VIBE}
+Chill = casual friendly convo
+Spicy = a bit flirty and playful
+Wild = chaotic energy, daring, funny
+
+Current conversation context: You just matched with a stranger on DARE.ME. Start by greeting them naturally.
+
+IMPORTANT: Reply ONLY with what you would type in chat. No narration, no quotes, no labels. Just the raw message text.`;
+
+function startAIStranger() {
+  isAIMode = true;
+  aiStrangerActive = true;
+  aiConversationHistory = [];
+
+  enterChat();
+
+  // Show AI badge subtly
+  const badge = document.getElementById('topVibeBadge');
+  const v = vibeConfig[currentVibe];
+  badge.textContent = `${v.emoji} ${v.label}`;
+  badge.className = `vibe-badge ${v.class}`;
+
+  // Show stranger video placeholder with a bot-style avatar
+  document.getElementById('remotePlaceholder').style.display = 'flex';
+  document.getElementById('remotePlaceholder').innerHTML = `
+    <div class="cam-off-icon" style="background: linear-gradient(135deg, rgba(255,45,107,0.2), rgba(0,229,255,0.2)); border-color: rgba(255,45,107,0.3); font-size:28px;">👤</div>
+    <div class="cam-off-text">Camera Off</div>
+  `;
+
+  // AI sends first greeting after a short delay
+  setTimeout(() => {
+    if (isAIMode) aiSendMessage(null); // null = opening message
+  }, 1500);
+}
+
+async function aiSendMessage(userMessage) {
+  if (!isAIMode || !aiStrangerActive) return;
+
+  // Add user message to history if exists
+  if (userMessage) {
+    aiConversationHistory.push({ role: 'user', content: userMessage });
+  }
+
+  // Show typing indicator
+  showAITyping();
+
+  // Build messages for Claude
+  const systemPrompt = AI_SYSTEM_PROMPT.replace('{VIBE}', currentVibe);
+  const messages = aiConversationHistory.length > 0
+    ? aiConversationHistory
+    : [{ role: 'user', content: 'You just matched with me. Say hi!' }];
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: messages
+      })
+    });
+
+    const data = await res.json();
+    const reply = data?.content?.[0]?.text?.trim();
+
+    if (reply && isAIMode) {
+      hideAITyping();
+      // Simulate realistic typing delay based on message length
+      const typingDelay = Math.min(reply.length * 30, 2000);
+      setTimeout(() => {
+        if (isAIMode) {
+          addMsg(reply, 'them');
+          aiConversationHistory.push({ role: 'assistant', content: reply });
+
+          // Randomly disconnect after long conversations (feels real)
+          if (aiConversationHistory.length > 20 && Math.random() < 0.15) {
+            setTimeout(() => aiRandomDisconnect(), 3000 + Math.random() * 5000);
+          }
+        }
+      }, typingDelay);
+    }
+  } catch (e) {
+    hideAITyping();
+    // Fallback replies if API fails
+    const fallbacks = ['lol', 'haha yeah', 'omg same', 'wait really?', 'haha no way'];
+    if (isAIMode) addMsg(fallbacks[Math.floor(Math.random() * fallbacks.length)], 'them');
+  }
+}
+
+function showAITyping() {
+  const msgs = document.getElementById('messages');
+  // Remove existing typing indicator
+  const existing = document.getElementById('ai-typing');
+  if (existing) existing.remove();
+
+  const div = document.createElement('div');
+  div.id = 'ai-typing';
+  div.className = 'msg them';
+  div.style.cssText = 'display:flex; gap:5px; align-items:center; padding: 10px 14px; width:fit-content;';
+  div.innerHTML = `
+    <span style="width:7px;height:7px;border-radius:50%;background:var(--muted);animation:loadDot 1.2s infinite;display:inline-block;"></span>
+    <span style="width:7px;height:7px;border-radius:50%;background:var(--muted);animation:loadDot 1.2s 0.2s infinite;display:inline-block;"></span>
+    <span style="width:7px;height:7px;border-radius:50%;background:var(--muted);animation:loadDot 1.2s 0.4s infinite;display:inline-block;"></span>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function hideAITyping() {
+  const el = document.getElementById('ai-typing');
+  if (el) el.remove();
+}
+
+function aiRandomDisconnect() {
+  if (!isAIMode) return;
+  const byeMessages = [
+    'hey gtg! was fun tho 😄',
+    'brb gotta go lol',
+    'ok i gotta go bye!',
+    'lol okay cya 👋',
+    'my friend is calling me bye!',
+  ];
+  const bye = byeMessages[Math.floor(Math.random() * byeMessages.length)];
+  addMsg(bye, 'them');
+  setTimeout(() => {
+    if (isAIMode) {
+      addSystemMsg('Stranger disconnected. Click NEXT to find someone new.');
+      aiStrangerActive = false;
+    }
+  }, 1200);
+}
+
+// Called when user sends a message and AI mode is on
+function handleAIResponse(userText) {
+  if (!isAIMode || !aiStrangerActive) return;
+  // Small random chance AI ignores message briefly (feels human)
+  const delay = Math.random() < 0.2 ? 4000 + Math.random() * 4000 : 800 + Math.random() * 2000;
+  setTimeout(() => {
+    if (isAIMode && aiStrangerActive) aiSendMessage(userText);
+  }, delay);
+}
+
+// ══════════════════════════════════════
+// FULLSCREEN
+// ══════════════════════════════════════
+let fsActive = false;
+let fsType = null;
+
+function openFullscreen(type) {
+  fsType = type;
+  const overlay = document.getElementById('fs-overlay');
+  const fsVideo = document.getElementById('fs-video-el');
+  const fsBadge = document.getElementById('fs-name-badge');
+  const fsLabel = document.getElementById('fs-label-overlay');
+
+  if (type === 'local') {
+    const src = document.getElementById('localVideo').srcObject;
+    if (src) {
+      fsVideo.srcObject = src;
+      fsVideo.muted = true;
+      fsVideo.style.transform = 'scaleX(-1)';
+    } else {
+      showToast('Camera is off');
+      return;
+    }
+    fsBadge.textContent = 'YOU';
+    fsLabel.textContent = 'YOU';
+  } else {
+    const src = document.getElementById('remoteVideo').srcObject;
+    if (src) {
+      fsVideo.srcObject = src;
+      fsVideo.muted = false;
+      fsVideo.style.transform = 'none';
+    } else {
+      // Demo mode — show a colored canvas stream
+      showDemoFullscreen(overlay, fsBadge, fsLabel);
+      return;
+    }
+    fsBadge.textContent = 'STRANGER';
+    fsLabel.textContent = 'STRANGER';
+  }
+
+  overlay.classList.add('active');
+  fsActive = true;
+
+  // Try native browser fullscreen too
+  if (overlay.requestFullscreen) overlay.requestFullscreen().catch(() => {});
+}
+
+function showDemoFullscreen(overlay, fsBadge, fsLabel) {
+  // Show a demo placeholder since no real stream
+  const fsVideo = document.getElementById('fs-video-el');
+  fsVideo.srcObject = null;
+  fsVideo.style.display = 'none';
+
+  // Create placeholder if not exists
+  let placeholder = document.getElementById('fs-placeholder');
+  if (!placeholder) {
+    placeholder = document.createElement('div');
+    placeholder.id = 'fs-placeholder';
+    placeholder.style.cssText = `
+      position:absolute; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:16px;
+      background: radial-gradient(ellipse at center, #1a1a2e 0%, #000 100%);
+    `;
+    placeholder.innerHTML = `
+      <div style="font-size:80px;">👽</div>
+      <div style="font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:4px; color:rgba(255,255,255,0.3);">STRANGER IS HERE</div>
+      <div style="font-size:13px; color:rgba(255,255,255,0.2); letter-spacing:2px;">Real video needs WebRTC connection</div>
+    `;
+    document.getElementById('fs-video-container').appendChild(placeholder);
+  } else {
+    placeholder.style.display = 'flex';
+  }
+
+  fsBadge.textContent = 'STRANGER';
+  fsLabel.textContent = 'STRANGER';
+  overlay.classList.add('active');
+  fsActive = true;
+}
+
+function closeFullscreen() {
+  const overlay = document.getElementById('fs-overlay');
+  overlay.classList.remove('active');
+  fsActive = false;
+
+  const fsVideo = document.getElementById('fs-video-el');
+  fsVideo.srcObject = null;
+  fsVideo.style.display = 'block';
+
+  const placeholder = document.getElementById('fs-placeholder');
+  if (placeholder) placeholder.style.display = 'none';
+
+  // Exit native fullscreen if active
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+
+// ══════════════════════════════════════
+// EXPANDED CHAT
+// ══════════════════════════════════════
+function openExpandedChat() {
+  const overlay = document.getElementById('chat-expanded');
+  overlay.classList.add('active');
+  // Mirror all existing messages into expanded view
+  syncExpandedMessages();
+  // Focus input
+  setTimeout(() => document.getElementById('expChatInput').focus(), 100);
+}
+
+function closeExpandedChat() {
+  document.getElementById('chat-expanded').classList.remove('active');
+}
+
+function syncExpandedMessages() {
+  const src = document.getElementById('messages');
+  const dest = document.getElementById('exp-messages');
+  dest.innerHTML = src.innerHTML;
+  dest.scrollTop = dest.scrollHeight;
+}
+
+function sendExpandedMessage() {
+  const input = document.getElementById('expChatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  addMsg(text, 'me');
+  syncExpandedMessages();
+
+  if (isAIMode) {
+    handleAIResponse(text);
+  } else if (socket && socket.connected) {
+    socket.emit('chat-message', { text });
+  }
+  input.value = '';
+}
+
+function handleExpKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendExpandedMessage(); }
+}
+
+// Close expanded chat on ESC (if fullscreen not active)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (fsActive) { closeFullscreen(); return; }
+    if (document.getElementById('chat-expanded').classList.contains('active')) closeExpandedChat();
+  }
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
