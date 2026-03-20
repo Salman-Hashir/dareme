@@ -1780,10 +1780,10 @@
         <span>Join Room</span>
         <span class="btn-label">ENTER CODE</span>
       </button>
-      <button class="landing-room-btn group" onclick="toggleLandingPanel('group')">
-        <span class="btn-icon">👥</span>
-        <span>Group Room</span>
-        <span class="btn-label">UP TO 4</span>
+      <button class="landing-room-btn group" onclick="landingJoinRandomGroup()">
+        <span class="btn-icon">🎲</span>
+        <span>Random Group</span>
+        <span class="btn-label">AUTO-JOIN</span>
       </button>
       <button class="landing-room-btn friends" onclick="openFriendsModal()">
         <span class="btn-icon">💚</span>
@@ -1807,20 +1807,6 @@
       <input class="room-input" id="landingJoinInput" placeholder="ENTER CODE" maxlength="6"
         style="margin-bottom:10px;" oninput="this.value=this.value.toUpperCase()"/>
       <button class="landing-panel-btn cyan" onclick="landingJoinRoom()">JOIN ROOM →</button>
-    </div>
-
-    <!-- Group room inline panel -->
-    <div class="landing-inline-panel" id="panel-group">
-      <div class="landing-code-display">
-        <span class="landing-code-val" id="landingGroupCode">------</span>
-        <div class="landing-code-hint">Share with up to 3 friends</div>
-      </div>
-      <button class="landing-panel-btn cyan" onclick="copyLandingCode('group')">📋 COPY CODE</button>
-      <button class="landing-panel-btn purple" onclick="landingCreateGroupRoom()">CREATE GROUP →</button>
-      <div style="text-align:center;color:var(--muted);font-size:11px;letter-spacing:2px;margin:10px 0;">— JOIN EXISTING —</div>
-      <input class="room-input" id="landingGroupJoinInput" placeholder="GROUP CODE" maxlength="6"
-        style="margin-bottom:8px;" oninput="this.value=this.value.toUpperCase()"/>
-      <button class="landing-panel-btn purple" onclick="landingJoinGroupRoom()">JOIN GROUP →</button>
     </div>
   </div>
 
@@ -2147,7 +2133,8 @@ function initSocket() {
   socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
 
   socket.on('connect', () => {
-    console.log('✅ Connected to server:', socket.id);
+    console.log('✅ Connected:', socket.id);
+    mySocketId = socket.id;
     initGroupSocketEvents();
   });
 
@@ -2155,63 +2142,65 @@ function initSocket() {
     document.getElementById('onlineCount').textContent = count.toLocaleString();
   });
 
-  // Server found a match!
+  // ── 1-to-1 matched ──
   socket.on('matched', async ({ role }) => {
-    clearTimeout(aiMatchTimer); // real match found — cancel AI fallback
-    isAIMode = false;
-    myRole = role;
-    console.log('🎯 Matched! Role:', role);
+    clearTimeout(aiMatchTimer);
+    isAIMode = false; myRole = role;
     enterChat();
     await setupWebRTC(role);
   });
 
-  // Still waiting in queue
   socket.on('waiting', () => {
-    console.log('⏳ Waiting for match...');
+    document.querySelector('.match-sub').textContent = 'Please wait... looking for someone';
   });
 
-  // Partner sent WebRTC offer (receiver gets this)
-  socket.on('webrtc-offer', async ({ offer }) => {
+  socket.on('waiting-group', () => {
+    document.querySelector('.match-sub').textContent = 'Waiting for an open group...';
+  });
+
+  // ── WebRTC signaling (1-to-1) ──
+  socket.on('webrtc-offer', async ({ offer, from }) => {
+    // If from a group member, handle in group system
+    if (from && groupPeers[from] !== undefined) return;
     if (!peerConnection) return;
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
-    socket.emit('webrtc-answer', { answer });
+    socket.emit('webrtc-answer', { answer, to: from });
   });
 
-  // Partner sent WebRTC answer (initiator gets this)
-  socket.on('webrtc-answer', async ({ answer }) => {
+  socket.on('webrtc-answer', async ({ answer, from }) => {
+    if (from && groupPeers[from] !== undefined) return;
     if (!peerConnection) return;
     await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
   });
 
-  // ICE candidate from partner
-  socket.on('ice-candidate', async ({ candidate }) => {
-    if (!peerConnection || !candidate) return;
-    try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
+  socket.on('ice-candidate', async ({ candidate, from }) => {
+    // Route to correct peer connection
+    const pc = (from && groupPeers[from]) ? groupPeers[from] : peerConnection;
+    if (pc && candidate) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
+    }
   });
 
-  // Partner's chat message
-  socket.on('chat-message', ({ text }) => {
+  // ── Chat ──
+  socket.on('chat-message', ({ text, from }) => {
     addMsg(text, 'them');
   });
 
-  // Partner used T&D
   socket.on('td-question', ({ type, question }) => {
     addTDMsg(`🎲 ${type.toUpperCase()}: ${question}`);
     showToast(`Stranger picked ${type.toUpperCase()}!`);
   });
 
-  // Partner disconnected / clicked Next
+  // ── Partner left (1-to-1) ──
   socket.on('partner-disconnected', () => {
     addSystemMsg('Stranger disconnected. Click NEXT to find someone new.');
     closePeerConnection();
     showToast('Stranger left 👋');
   });
 
-  socket.on('disconnect', () => {
-    console.log('❌ Disconnected from server');
-  });
+  socket.on('disconnect', () => console.log('❌ Disconnected from server'));
 }
 
 // ══════════════════════════════════════
@@ -2785,11 +2774,11 @@ function copyLandingCode(type) {
 async function landingCreateRoom() {
   await initCamera();
   if (!socket || !socket.connected) { initSocket(); await sleep(600); }
-  socket.emit('join-private-room', { code: landingPrivateCode });
+  await sleep(300);
+  socket.emit('create-private-room', { code: landingPrivateCode });
   show('matching');
   document.querySelector('.match-text').textContent = 'PRIVATE ROOM';
-  document.querySelector('.match-sub').textContent = 'Waiting... Code: ' + landingPrivateCode;
-  // No AI fallback for private rooms
+  document.querySelector('.match-sub').textContent = 'Code: ' + landingPrivateCode + ' · Waiting...';
 }
 
 async function landingJoinRoom() {
@@ -2797,6 +2786,7 @@ async function landingJoinRoom() {
   if (code.length < 4) { showToast('Enter a valid room code'); return; }
   await initCamera();
   if (!socket || !socket.connected) { initSocket(); await sleep(600); }
+  await sleep(300);
   socket.emit('join-private-room', { code });
   show('matching');
   document.querySelector('.match-text').textContent = 'JOINING ROOM';
@@ -2806,21 +2796,34 @@ async function landingJoinRoom() {
 async function landingCreateGroupRoom() {
   await initCamera();
   if (!socket || !socket.connected) { initSocket(); await sleep(600); }
-  socket.emit('join-group-room', { code: landingGroupCode, maxPeers: 4 });
+  // Create private-style group room with a code
+  const code = landingGroupCode;
+  socket.emit('create-private-room', { code });
   show('matching');
-  document.querySelector('.match-text').textContent = 'GROUP ROOM';
-  document.querySelector('.match-sub').textContent = 'Code: ' + landingGroupCode + ' · Waiting for friends...';
+  document.querySelector('.match-text').textContent = 'PRIVATE ROOM';
+  document.querySelector('.match-sub').textContent = 'Code: ' + code + ' · Waiting for friends...';
 }
 
 async function landingJoinGroupRoom() {
   const code = document.getElementById('landingGroupJoinInput').value.trim().toUpperCase();
-  if (code.length < 4) { showToast('Enter a valid group code'); return; }
+  if (code.length < 4) { showToast('Enter a valid code'); return; }
   await initCamera();
   if (!socket || !socket.connected) { initSocket(); await sleep(600); }
-  socket.emit('join-group-room', { code, maxPeers: 4 });
+  socket.emit('join-private-room', { code });
+  show('matching');
+  document.querySelector('.match-text').textContent = 'JOINING ROOM';
+  document.querySelector('.match-sub').textContent = 'Code: ' + code;
+}
+
+// NEW: Join random open group from landing
+async function landingJoinRandomGroup() {
+  await initCamera();
+  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
+  await sleep(300);
+  socket.emit('join-group-queue');
   show('matching');
   document.querySelector('.match-text').textContent = 'JOINING GROUP';
-  document.querySelector('.match-sub').textContent = 'Code: ' + code;
+  document.querySelector('.match-sub').textContent = 'Looking for an open group...';
 }
 
 async function initCamera() {
@@ -2862,6 +2865,32 @@ let groupPeers        = {};
 let pendingKickId     = null;
 let currentVoteRoomId = null;
 let isInGroup         = false;
+let mySocketId        = null;
+
+// Show room code as a special message in chat
+function addGroupCodeMsg(code, isPrivate) {
+  const msgs = document.getElementById('messages');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.className = 'msg system';
+  div.style.cssText = 'text-align:center; width:100%; max-width:100%;';
+  const label = isPrivate ? '🔒 PRIVATE ROOM CODE' : '👥 GROUP ROOM CODE';
+  const hint  = isPrivate ? 'Share to invite friends (up to 4)' : 'Anyone can join with this code';
+  div.innerHTML = `
+    <div style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);border-radius:6px;padding:14px 16px;margin:4px 0;">
+      <div style="font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:6px;">${label}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:12px;background:linear-gradient(135deg,var(--cyan),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${code}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:1px;">${hint}</div>
+      <button onclick="copyCode('${code}')" style="margin-top:8px;padding:4px 14px;background:rgba(0,229,255,0.12);border:1px solid rgba(0,229,255,0.25);color:var(--cyan);border-radius:3px;font-size:11px;cursor:pointer;letter-spacing:1px;">📋 COPY CODE</button>
+    </div>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(() => showToast('Code copied! ' + code));
+}
 
 function showExpandBtn() {
   setTimeout(() => {
@@ -2873,9 +2902,10 @@ function showExpandBtn() {
 
 function requestExpand() {
   if (!socket || !socket.connected) { showToast('Not connected!'); return; }
-  socket.emit('expand-request');
+  if (isAIMode) { showToast('Only works with real strangers!'); return; }
+  socket.emit('open-group-request');
   document.getElementById('expandBtn').classList.remove('visible');
-  addSystemMsg('➕ Sent request to add a stranger — waiting for partner to agree...');
+  addSystemMsg('➕ Asked partner to open group chat...');
 }
 
 function showExpandBanner(from) {
@@ -2889,9 +2919,12 @@ function voteExpand(agree) {
   const b = document.getElementById('expandBanner');
   b.classList.remove('show');
   setTimeout(() => b.style.display = 'none', 300);
-  if (!currentRoomId) return;
-  socket.emit('expand-vote', { roomId: currentRoomId, agree });
-  addSystemMsg(agree ? '✅ You agreed! Searching for a stranger...' : '❌ You declined.');
+  if (agree) {
+    socket.emit('open-group-accept');
+  } else {
+    socket.emit('open-group-decline');
+    addSystemMsg('❌ You declined to open the group.');
+  }
 }
 
 async function onMemberJoined(newMemberId, allMembers) {
@@ -3012,49 +3045,116 @@ function castKickVote(agree) {
 function initGroupSocketEvents() {
   if (!socket) return;
 
-  socket.on('expand-requested', ({ roomId, from }) => {
-    currentRoomId = roomId;
-    if (from !== socket.id) showExpandBanner(from);
-    else addSystemMsg('⏳ Waiting for partner to agree...');
+  // ── Open group consent ──
+  socket.on('open-group-ask', ({ from }) => {
+    // Partner wants to open group — show consent banner
+    showExpandBanner(from);
   });
 
-  socket.on('expand-declined', () => {
+  socket.on('open-group-waiting', () => {
+    addSystemMsg('⏳ Waiting for partner to agree...');
+  });
+
+  socket.on('open-group-declined', () => {
     const b = document.getElementById('expandBanner');
-    b.classList.remove('show'); setTimeout(() => b.style.display='none', 300);
-    addSystemMsg('❌ Partner declined. Just the two of you continues!');
+    b.classList.remove('show');
+    setTimeout(() => b.style.display = 'none', 300);
+    addSystemMsg('❌ Partner declined. Just the two of you!');
     document.getElementById('expandBtn').classList.add('visible');
   });
 
-  socket.on('expand-no-stranger', () => {
-    addSystemMsg('😕 No strangers in queue right now. Try again in a moment!');
-    document.getElementById('expandBtn').classList.add('visible');
+  // ── Group opened (both agreed — we were in a pair) ──
+  socket.on('group-opened', async ({ roomId, code, members, myId }) => {
+    clearTimeout(aiMatchTimer);
+    currentRoomId = roomId;
+    groupMembers  = members;
+    isInGroup     = true;
+    mySocketId    = myId;
+
+    // Show code in chat
+    addGroupCodeMsg(code, false);
+    addSystemMsg(`👥 Group mode ON! Anyone can join now. Share code: ${code}`);
+
+    // Build group video grid
+    buildGroupVideoGrid(members);
+    updateGroupUI();
+
+    // Connect to the other existing member via WebRTC
+    for (const memberId of members) {
+      if (memberId !== socket.id) {
+        await connectToGroupMember(memberId, true);
+      }
+    }
   });
 
-  socket.on('member-joined', ({ newMember, members }) => {
-    groupMembers = members; isInGroup = true;
-    onMemberJoined(newMember, members);
+  // ── Joined an existing group ──
+  socket.on('group-joined', async ({ roomId, code, members, myId, isPrivate }) => {
+    clearTimeout(aiMatchTimer);
+    currentRoomId = roomId;
+    groupMembers  = members;
+    isInGroup     = true;
+    mySocketId    = myId;
+
+    enterChat();
+
+    // Show code in chat
+    addGroupCodeMsg(code, isPrivate);
+    addSystemMsg(`👥 You joined a group! (${members.length}/4 people)`);
+
+    buildGroupVideoGrid(members);
+    updateGroupUI();
+
+    // Connect to all existing members
+    for (const memberId of members) {
+      if (memberId !== socket.id) {
+        await connectToGroupMember(memberId, false);
+      }
+    }
   });
 
-  socket.on('group-joined', ({ roomId, members }) => {
-    onGroupJoined(roomId, members);
+  // ── New member joined existing group ──
+  socket.on('member-joined', async ({ newMember, members }) => {
+    groupMembers = members;
+    isInGroup    = true;
+    addSystemMsg(`👥 A stranger joined! (${members.length}/4 people)`);
+    addGroupVideoBox(newMember);
+    const area = document.getElementById('videoArea');
+    if (area) area.className = 'video-area g' + Math.min(members.length, 4);
+    await connectToGroupMember(newMember, true);
+    updateGroupUI();
   });
 
+  // ── Group full ──
+  socket.on('group-full', ({ members }) => {
+    groupMembers = members;
+    addSystemMsg('👥 Group is full! (4/4)');
+    document.getElementById('expandBtn').classList.remove('visible');
+    updateGroupUI();
+  });
+
+  // ── Member left ──
   socket.on('member-left', ({ socketId, members }) => {
     groupMembers = members;
     removeGroupVideoBox(socketId);
     if (groupPeers[socketId]) { groupPeers[socketId].close(); delete groupPeers[socketId]; }
     addSystemMsg('👋 A member left the group.');
-    if (members.length <= 2) { isInGroup = false; document.getElementById('groupBadge').classList.remove('visible'); }
+    if (members.length < 3) { isInGroup = false; }
     updateGroupUI();
   });
 
-  socket.on('group-state', ({ roomId, members, kickVotes }) => {
-    currentRoomId = roomId; groupMembers = members;
-    isInGroup = members.length >= 2;
+  // ── Group state update ──
+  socket.on('group-state', ({ roomId, code, members, open, isPrivate, kickVotes }) => {
+    currentRoomId = roomId;
+    groupMembers  = members;
+    isInGroup     = true;
     if (kickVotes) showKickBanner(kickVotes.targetId, kickVotes.votes, kickVotes.needed);
+    // Update expand btn based on open state
+    const eb = document.getElementById('expandBtn');
+    if (eb) eb.classList.toggle('visible', open && members.length < 4);
     updateGroupUI();
   });
 
+  // ── Kick votes ──
   socket.on('kick-vote-started', ({ targetId, votes, needed }) => {
     showKickBanner(targetId, votes, needed);
     addSystemMsg(`🗳️ Kick vote started! ${votes}/${needed} votes needed.`);
@@ -3068,6 +3168,47 @@ function initGroupSocketEvents() {
   socket.on('you-were-kicked', () => {
     showToast('You were removed by the group 🚫');
     setTimeout(() => exitToHome(), 2000);
+  });
+
+  // ── Private room events ──
+  socket.on('private-room-created', ({ roomId, code }) => {
+    currentRoomId = roomId;
+    isInGroup = true;
+    enterChat();
+    addGroupCodeMsg(code, true);
+    addSystemMsg(`🔒 Private room created! Share code: ${code} (up to 4 people)`);
+    buildGroupVideoGrid([socket.id]);
+    updateGroupUI();
+  });
+
+  socket.on('private-room-not-found', () => {
+    showToast('Room not found! Check the code.');
+    show('landing');
+  });
+
+  socket.on('private-room-full', () => {
+    showToast('Room is full (4/4)!');
+    show('landing');
+  });
+
+  // ── Group WebRTC (routes to correct peer) ──
+  socket.on('webrtc-offer', async ({ offer, from }) => {
+    if (!from) return; // handled by 1-to-1 handler
+    if (groupPeers[from] === undefined) {
+      await connectToGroupMember(from, false);
+    }
+    const pc = groupPeers[from];
+    if (!pc) return;
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('webrtc-answer', { answer, to: from });
+  });
+
+  socket.on('webrtc-answer', async ({ answer, from }) => {
+    if (!from) return;
+    const pc = groupPeers[from];
+    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
   });
 }
 
