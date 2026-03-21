@@ -1538,7 +1538,94 @@
   }
   .video-maximize-btn:hover { border-color: var(--neon); color: var(--neon); }
 
-  /* ── FULLSCREEN OVERLAY (existing, kept) ── */
+  /* ── PARTNER LEFT POPUP ── */
+  .popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(6,6,8,0.85);
+    backdrop-filter: blur(10px);
+    z-index: 450;
+    align-items: center;
+    justify-content: center;
+  }
+  .popup-overlay.show { display: flex; }
+
+  .popup-card {
+    width: min(380px, 90vw);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    animation: cardIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    text-align: center;
+  }
+
+  .popup-icon {
+    font-size: 48px;
+    padding: 28px 0 8px;
+    display: block;
+  }
+
+  .popup-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    color: var(--text);
+    padding: 0 20px;
+  }
+
+  .popup-sub {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 8px 24px 20px;
+    line-height: 1.5;
+  }
+
+  .popup-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--border);
+  }
+
+  .popup-btn {
+    padding: 16px;
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .popup-btn.primary {
+    background: linear-gradient(135deg, var(--neon), var(--neon2));
+    color: #fff;
+  }
+  .popup-btn.primary:hover { opacity: 0.9; }
+
+  .popup-btn.secondary {
+    background: var(--surface);
+    color: var(--muted);
+    border-left: 1px solid var(--border);
+  }
+  .popup-btn.secondary:hover { color: var(--text); }
+
+  /* ── GROUP INVITE POPUP ── */
+  .group-invite-popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(6,6,8,0.85);
+    backdrop-filter: blur(10px);
+    z-index: 450;
+    align-items: center;
+    justify-content: center;
+  }
+  .group-invite-popup.show { display: flex; }
+
+  /* ── FULLSCREEN OVERLAY (existing) ── */
 
   /* ── EXPAND GROUP BUTTON ── */
   .expand-btn {
@@ -2231,6 +2318,32 @@
   <button class="banner-no" onclick="castKickVote(false)">KEEP</button>
 </div>
 
+<!-- ══════════════ PARTNER LEFT POPUP ══════════════ -->
+<div class="popup-overlay" id="partnerLeftPopup">
+  <div class="popup-card">
+    <span class="popup-icon">👋</span>
+    <div class="popup-title">Stranger Left</div>
+    <div class="popup-sub">They disconnected. Want to find someone new or go back home?</div>
+    <div class="popup-actions">
+      <button class="popup-btn primary" onclick="closePopupAndNext()">FIND NEW ▸</button>
+      <button class="popup-btn secondary" onclick="closePopupAndHome()">GO HOME</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ GROUP INVITE POPUP ══════════════ -->
+<div class="group-invite-popup" id="groupInvitePopup">
+  <div class="popup-card">
+    <span class="popup-icon">👥</span>
+    <div class="popup-title">Group Invite!</div>
+    <div class="popup-sub">Your match wants to open this chat to more strangers. Both must agree to make it a group call.</div>
+    <div class="popup-actions">
+      <button class="popup-btn primary" onclick="respondGroupInvite(true)">AGREE ✓</button>
+      <button class="popup-btn secondary" onclick="respondGroupInvite(false)">DECLINE ✕</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -2342,42 +2455,41 @@ function initSocket() {
     document.querySelector('.match-sub').textContent = 'Waiting for an open group...';
   });
 
-  // ── WebRTC signaling (1-to-1 and group) ──
+  // ── WebRTC signaling ──
+  // Rule: 1-to-1 offers have NO 'from' field. Group offers have 'from'.
   socket.on('webrtc-offer', async ({ offer, from }) => {
-    // Group member offer — handled in initGroupSocketEvents
-    if (from && groupPeers[from] !== undefined) return;
-    // Group mode — new member connecting
-    if (isInGroup && from && groupPeers[from] === undefined) {
-      await connectToGroupMember(from, false);
+    if (from) {
+      // Group member offer
+      if (!groupPeers[from]) await connectToGroupMember(from, false);
       const pc = groupPeers[from];
       if (!pc) return;
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('webrtc-answer', { answer, to: from });
-      return;
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('webrtc-answer', { answer, to: from });
+      } catch(e) { console.error('Group offer error:', e); }
+    } else {
+      // 1-to-1 offer
+      if (!peerConnection) return;
+      try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit('webrtc-answer', { answer }); // no 'to'
+      } catch(e) { console.error('1-to-1 offer error:', e); }
     }
-    // 1-to-1
-    if (!peerConnection) return;
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    socket.emit('webrtc-answer', { answer, to: from });
   });
 
   socket.on('webrtc-answer', async ({ answer, from }) => {
-    // Group answer
     if (from && groupPeers[from]) {
-      await groupPeers[from].setRemoteDescription(new RTCSessionDescription(answer));
-      return;
+      try { await groupPeers[from].setRemoteDescription(new RTCSessionDescription(answer)); } catch(e) {}
+    } else if (peerConnection) {
+      try { await peerConnection.setRemoteDescription(new RTCSessionDescription(answer)); } catch(e) {}
     }
-    // 1-to-1
-    if (!peerConnection) return;
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
   });
 
   socket.on('ice-candidate', async ({ candidate, from }) => {
-    // Route to correct peer connection
     const pc = (from && groupPeers[from]) ? groupPeers[from] : peerConnection;
     if (pc && candidate) {
       try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
@@ -2396,9 +2508,8 @@ function initSocket() {
 
   // ── Partner left (1-to-1) ──
   socket.on('partner-disconnected', () => {
-    addSystemMsg('Stranger disconnected. Click NEXT to find someone new.');
     closePeerConnection();
-    showToast('Stranger left 👋');
+    showPartnerLeftPopup();
   });
 
   socket.on('disconnect', () => console.log('❌ Disconnected from server'));
@@ -2411,46 +2522,65 @@ async function setupWebRTC(role) {
   closePeerConnection();
   peerConnection = new RTCPeerConnection(RTC_CONFIG);
 
-  // Add local stream tracks to peer connection
+  // Add local tracks
   if (localStream) {
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream);
     });
   }
 
-  // Set up DataChannel for file transfer
+  // DataChannel for file transfer
   setupDataChannel();
 
-  // When remote stream arrives — show it!
+  // Remote stream → show video
   peerConnection.ontrack = (event) => {
-    const remoteVideo = document.getElementById('remoteVideo');
-    const remotePlaceholder = document.getElementById('remotePlaceholder');
-    if (event.streams && event.streams[0]) {
-      attachVideoStream(remoteVideo, event.streams[0]);
-      remoteVideo.style.display = 'block';
-      remotePlaceholder.style.display = 'none';
+    if (!event.streams || !event.streams[0]) return;
+    const rv = document.getElementById('remoteVideo');
+    const rp = document.getElementById('remotePlaceholder');
+    if (rv) {
+      attachVideoStream(rv, event.streams[0]);
+      rv.style.display = 'block';
     }
+    if (rp) rp.style.display = 'none';
   };
 
-  // Send ICE candidates to partner via server
+  // ICE candidates — no 'to' for 1-to-1
   peerConnection.onicecandidate = (event) => {
-    if (event.candidate) {
+    if (event.candidate && socket) {
       socket.emit('ice-candidate', { candidate: event.candidate });
     }
   };
 
+  // Connection state
   peerConnection.onconnectionstatechange = () => {
-    console.log('WebRTC state:', peerConnection.connectionState);
-    if (peerConnection.connectionState === 'connected') {
-      showToast('Video connected! 🎥');
+    const state = peerConnection ? peerConnection.connectionState : 'closed';
+    console.log('WebRTC:', state);
+    if (state === 'connected') showToast('Video connected! 🎥');
+    if (state === 'failed') {
+      showToast('Video connection failed — trying to reconnect...');
+      // Restart ICE
+      if (peerConnection && myRole === 'initiator') {
+        peerConnection.restartIce();
+        peerConnection.createOffer({ iceRestart: true }).then(offer => {
+          peerConnection.setLocalDescription(offer);
+          socket.emit('webrtc-offer', { offer });
+        }).catch(() => {});
+      }
     }
   };
 
-  // Initiator creates and sends the offer
+  // Initiator sends offer — NO 'to' field for 1-to-1
   if (role === 'initiator') {
-    const offer = await peerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-    await peerConnection.setLocalDescription(offer);
-    socket.emit('webrtc-offer', { offer });
+    try {
+      const offer = await peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
+      await peerConnection.setLocalDescription(offer);
+      socket.emit('webrtc-offer', { offer }); // no 'to' = server routes to pair partner
+    } catch(e) {
+      console.error('Offer failed:', e);
+    }
   }
 }
 
@@ -2831,8 +2961,39 @@ function reportUser() {
 }
 
 // ══════════════════════════════════════
-// 📐 VIDEO LAYOUT SYSTEM
+// 👋 PARTNER LEFT POPUP
 // ══════════════════════════════════════
+function showPartnerLeftPopup() {
+  addSystemMsg('Stranger disconnected.');
+  document.getElementById('partnerLeftPopup').classList.add('show');
+}
+
+function closePopupAndNext() {
+  document.getElementById('partnerLeftPopup').classList.remove('show');
+  nextStranger();
+}
+
+function closePopupAndHome() {
+  document.getElementById('partnerLeftPopup').classList.remove('show');
+  exitToHome();
+}
+
+// ══════════════════════════════════════
+// 👥 GROUP INVITE POPUP
+// ══════════════════════════════════════
+function showGroupInvitePopup() {
+  document.getElementById('groupInvitePopup').classList.add('show');
+}
+
+function respondGroupInvite(agree) {
+  document.getElementById('groupInvitePopup').classList.remove('show');
+  if (agree) {
+    socket.emit('open-group-accept');
+  } else {
+    socket.emit('open-group-decline');
+    addSystemMsg('❌ You declined the group invite.');
+  }
+}
 let currentLayout = 'side';
 let videoExpanded = false;
 
@@ -3205,15 +3366,8 @@ function showExpandBanner(from) {
 }
 
 function voteExpand(agree) {
-  const b = document.getElementById('expandBanner');
-  b.classList.remove('show');
-  setTimeout(() => b.style.display = 'none', 300);
-  if (agree) {
-    socket.emit('open-group-accept');
-  } else {
-    socket.emit('open-group-decline');
-    addSystemMsg('❌ You declined to open the group.');
-  }
+  // Called from banner (fallback) — popup is primary now
+  respondGroupInvite(agree);
 }
 
 async function onMemberJoined(newMemberId, allMembers) {
@@ -3336,20 +3490,20 @@ function initGroupSocketEvents() {
 
   // ── Open group consent ──
   socket.on('open-group-ask', ({ from }) => {
-    // Partner wants to open group — show consent banner
-    showExpandBanner(from);
+    // Show group invite popup
+    showGroupInvitePopup();
   });
 
   socket.on('open-group-waiting', () => {
-    addSystemMsg('⏳ Waiting for partner to agree...');
+    addSystemMsg('⏳ Waiting for partner to agree to group invite...');
   });
 
   socket.on('open-group-declined', () => {
     const b = document.getElementById('expandBanner');
-    b.classList.remove('show');
-    setTimeout(() => b.style.display = 'none', 300);
+    if (b) { b.classList.remove('show'); setTimeout(() => b.style.display = 'none', 300); }
     addSystemMsg('❌ Partner declined. Just the two of you!');
-    document.getElementById('expandBtn').classList.add('visible');
+    const eb = document.getElementById('expandBtn');
+    if (eb) eb.classList.add('visible');
   });
 
   // ── Group opened (both agreed — we were in a pair) ──
@@ -3426,8 +3580,14 @@ function initGroupSocketEvents() {
     groupMembers = members;
     removeGroupVideoBox(socketId);
     if (groupPeers[socketId]) { groupPeers[socketId].close(); delete groupPeers[socketId]; }
-    addSystemMsg('👋 A member left the group.');
-    if (members.length < 3) { isInGroup = false; }
+    showToast('👋 A member left the group');
+    addSystemMsg(`👋 Someone left. (${members.length} remaining)`);
+    if (members.length < 2) {
+      isInGroup = false;
+      showPartnerLeftPopup();
+    } else if (members.length < 3) {
+      isInGroup = false;
+    }
     updateGroupUI();
   });
 
@@ -3479,29 +3639,9 @@ function initGroupSocketEvents() {
     showToast('Room is full (4/4)!');
     show('landing');
   });
-
-  // ── Group WebRTC (routes to correct peer) ──
-  socket.on('webrtc-offer', async ({ offer, from }) => {
-    if (!from) return; // handled by 1-to-1 handler
-    if (groupPeers[from] === undefined) {
-      await connectToGroupMember(from, false);
-    }
-    const pc = groupPeers[from];
-    if (!pc) return;
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    socket.emit('webrtc-answer', { answer, to: from });
-  });
-
-  socket.on('webrtc-answer', async ({ answer, from }) => {
-    if (!from) return;
-    const pc = groupPeers[from];
-    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
-  });
 }
 
-let currentFacingMode = 'user'; // 'user' = front, 'environment' = back
+let currentFacingMode = 'user';
 
 async function switchCamera() {
   if (!localStream) { showToast('Camera is off'); return; }
