@@ -2622,14 +2622,13 @@ async function setupWebRTC(role) {
 }
 
 function closePeerConnection() {
-  if (peerConnection) {
-    peerConnection.close();
-    peerConnection = null;
-  }
+  try {
+    if (peerConnection) { peerConnection.close(); peerConnection = null; }
+  } catch(e) {}
   const remoteVideo = document.getElementById('remoteVideo');
-  remoteVideo.srcObject = null;
-  remoteVideo.style.display = 'none';
-  document.getElementById('remotePlaceholder').style.display = 'flex';
+  if (remoteVideo) { remoteVideo.srcObject = null; remoteVideo.style.display = 'none'; }
+  const rp = document.getElementById('remotePlaceholder');
+  if (rp) rp.style.display = 'flex';
 }
 
 // ══════════════════════════════════════
@@ -2710,9 +2709,7 @@ async function startMatching() {
 
 function cancelMatch() {
   clearTimeout(aiMatchTimer);
-  if (socket) socket.disconnect();
-  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  show('landing');
+  exitToHome();
 }
 
 function enterChat() {
@@ -3197,69 +3194,109 @@ function showTapToPlay(videoEl) {
   parent.appendChild(overlay);
 }
 function exitToHome() {
-  // Stop timers
+  // Stop all timers first
   clearInterval(chatTimer);
   clearTimeout(aiMatchTimer);
   clearTimeout(autoReconnectTimer);
   clearInterval(autoReconnectInterval);
 
-  // Stop AI mode
+  // Stop AI
   isAIMode = false;
   aiStrangerActive = false;
   aiConversationHistory = [];
 
-  // Close WebRTC
-  closePeerConnection();
-
-  // Close group peers
+  // Close all peer connections
+  try { if (peerConnection) { peerConnection.close(); peerConnection = null; } } catch(e){}
   Object.values(groupPeers).forEach(pc => { try { pc.close(); } catch(e){} });
   groupPeers = {};
+
+  // Reset group state
   isInGroup = false;
   groupMembers = [];
   currentRoomId = null;
 
-  // Disconnect socket fully — fresh start next time
-  if (socket) {
-    socket.removeAllListeners();
-    socket.disconnect();
-    socket = null;
-  }
+  // Disconnect socket
+  try {
+    if (socket) {
+      socket.removeAllListeners();
+      socket.disconnect();
+      socket = null;
+    }
+  } catch(e) {}
 
-  // Stop camera
-  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  // Stop camera tracks
+  try {
+    if (localStream) {
+      localStream.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
+      localStream = null;
+    }
+  } catch(e) {}
 
-  // Reset UI
+  // Hide all popups/overlays
+  ['partnerLeftPopup','groupInvitePopup','td-panel','chat-expanded',
+   'fs-overlay','roomModal','friendsModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('show','active'); el.style.display = 'none'; }
+  });
+  const expand = document.getElementById('expandBanner');
+  const kick   = document.getElementById('kickBanner');
+  if (expand) { expand.classList.remove('show'); expand.style.display = 'none'; }
+  if (kick)   { kick.classList.remove('show');   kick.style.display   = 'none'; }
+
+  // Reset sidebar bars
   const gib = document.getElementById('groupInviteBar');
   if (gib) gib.classList.remove('show');
   const sfb = document.getElementById('saveFriendBar');
   if (sfb) sfb.style.display = 'none';
+
+  // Reset topbar badges
   const eb = document.getElementById('expandBtn');
   if (eb) eb.classList.remove('visible');
   const gb = document.getElementById('groupBadge');
   if (gb) gb.classList.remove('visible');
 
-  // Reset video area back to default 2-person layout
+  // Reset chat layout
+  const cl = document.querySelector('.chat-layout');
+  if (cl) cl.classList.remove('video-expanded');
+  videoExpanded = false;
+  currentLayout = 'side';
+
+  // Rebuild default video area
   const va = document.getElementById('videoArea');
   if (va) {
     va.className = 'video-area layout-side';
     va.innerHTML = `
       <div class="video-box">
         <video id="localVideo" autoplay muted playsinline></video>
-        <div class="cam-off-placeholder hidden" id="localPlaceholder"><div class="cam-off-icon">👤</div><div class="cam-off-text">Camera Off</div></div>
+        <div class="cam-off-placeholder hidden" id="localPlaceholder">
+          <div class="cam-off-icon">👤</div>
+          <div class="cam-off-text">Camera Off</div>
+        </div>
         <div class="video-label">YOU</div>
         <button class="fs-btn" onclick="openFullscreen('local')">&#x26F6;</button>
         <button class="cam-switch-btn" onclick="switchCamera()">🔄</button>
       </div>
       <div class="video-box">
-        <div class="cam-off-placeholder" id="remotePlaceholder" style="display:flex;"><div class="cam-off-icon">&#x1F47D;</div><div class="cam-off-text">Stranger</div></div>
+        <div class="cam-off-placeholder" id="remotePlaceholder" style="display:flex;">
+          <div class="cam-off-icon">&#x1F47D;</div>
+          <div class="cam-off-text">Stranger</div>
+        </div>
         <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
         <div class="video-label">STRANGER</div>
         <button class="fs-btn" onclick="openFullscreen('remote')">&#x26F6;</button>
-      </div>
-    `;
+      </div>`;
   }
 
-  show('landing');
+  // Force show landing — use direct style to avoid any show() bugs
+  ['landing','matching','chatscreen'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const landing = document.getElementById('landing');
+  if (landing) {
+    landing.style.display = 'flex';
+    landing.style.flexDirection = 'column';
+  }
 }
 
 // ══════════════════════════════════════
@@ -3294,67 +3331,76 @@ function copyLandingCode(type) {
   navigator.clipboard.writeText(code).then(() => showToast('Code copied! ' + code));
 }
 
+// Helper — init socket and wait for connection
+async function ensureSocket() {
+  if (socket && socket.connected) return;
+  if (socket) { socket.removeAllListeners(); socket.disconnect(); socket = null; }
+  initSocket();
+  await new Promise(resolve => {
+    if (socket.connected) { resolve(); return; }
+    socket.once('connect', resolve);
+    setTimeout(resolve, 3000);
+  });
+}
+
 async function landingCreateRoom() {
   await initCamera();
-  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
-  await sleep(300);
-  socket.emit('create-private-room', { code: landingPrivateCode });
   show('matching');
   document.querySelector('.match-text').textContent = 'PRIVATE ROOM';
-  document.querySelector('.match-sub').textContent = 'Code: ' + landingPrivateCode + ' · Waiting...';
+  document.querySelector('.match-sub').textContent = 'Code: ' + landingPrivateCode + ' · Connecting...';
+  await ensureSocket();
+  socket.emit('create-private-room', { code: landingPrivateCode });
+  document.querySelector('.match-sub').textContent = 'Code: ' + landingPrivateCode + ' · Waiting for friends...';
 }
 
 async function landingJoinRoom() {
   const code = document.getElementById('landingJoinInput').value.trim().toUpperCase();
   if (code.length < 4) { showToast('Enter a valid room code'); return; }
   await initCamera();
-  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
-  await sleep(300);
-  socket.emit('join-private-room', { code });
   show('matching');
   document.querySelector('.match-text').textContent = 'JOINING ROOM';
-  document.querySelector('.match-sub').textContent = 'Code: ' + code;
+  document.querySelector('.match-sub').textContent = 'Code: ' + code + ' · Connecting...';
+  await ensureSocket();
+  socket.emit('join-private-room', { code });
 }
 
 async function landingCreateGroupRoom() {
   await initCamera();
-  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
-  // Create private-style group room with a code
-  const code = landingGroupCode;
-  socket.emit('create-private-room', { code });
   show('matching');
-  document.querySelector('.match-text').textContent = 'PRIVATE ROOM';
-  document.querySelector('.match-sub').textContent = 'Code: ' + code + ' · Waiting for friends...';
+  document.querySelector('.match-text').textContent = 'CREATING GROUP';
+  document.querySelector('.match-sub').textContent = 'Connecting...';
+  await ensureSocket();
+  socket.emit('create-private-room', { code: landingGroupCode });
+  document.querySelector('.match-sub').textContent = 'Code: ' + landingGroupCode + ' · Waiting for friends...';
 }
 
 async function landingJoinGroupRoom() {
   const code = document.getElementById('landingGroupJoinInput').value.trim().toUpperCase();
   if (code.length < 4) { showToast('Enter a valid code'); return; }
   await initCamera();
-  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
-  socket.emit('join-private-room', { code });
   show('matching');
   document.querySelector('.match-text').textContent = 'JOINING ROOM';
-  document.querySelector('.match-sub').textContent = 'Code: ' + code;
+  document.querySelector('.match-sub').textContent = 'Code: ' + code + ' · Connecting...';
+  await ensureSocket();
+  socket.emit('join-private-room', { code });
 }
 
-// NEW: Join random open group from landing
 async function landingJoinRandomGroup() {
   await initCamera();
-  if (!socket || !socket.connected) { initSocket(); await sleep(600); }
-  await sleep(300);
-  socket.emit('join-group-queue');
   show('matching');
   document.querySelector('.match-text').textContent = 'JOINING GROUP';
   document.querySelector('.match-sub').textContent = 'Looking for an open group...';
+  await ensureSocket();
+  socket.emit('join-group-queue');
 }
 
 async function initCamera() {
   if (!localStream && camEnabled) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      document.getElementById('localVideo').srcObject = localStream;
-    } catch(e) { showToast('Camera denied — text only'); }
+      const lv = document.getElementById('localVideo');
+      if (lv) attachVideoStream(lv, localStream);
+    } catch(e) { showToast('Camera denied — text only mode'); }
   }
 }
 
@@ -3693,9 +3739,16 @@ function initGroupSocketEvents() {
   });
 
   // ── Private room events ──
-  socket.on('private-room-created', ({ roomId, code }) => {
+  socket.on('private-room-created', async ({ roomId, code }) => {
+    clearTimeout(aiMatchTimer);
     currentRoomId = roomId;
     isInGroup = true;
+    // Ensure camera is available
+    if (!localStream && camEnabled) {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch(e) {}
+    }
     enterChat();
     addGroupCodeMsg(code, true);
     addSystemMsg(`🔒 Private room created! Share code: ${code} (up to 4 people)`);
@@ -3705,12 +3758,12 @@ function initGroupSocketEvents() {
 
   socket.on('private-room-not-found', () => {
     showToast('Room not found! Check the code.');
-    show('landing');
+    exitToHome();
   });
 
   socket.on('private-room-full', () => {
     showToast('Room is full (4/4)!');
-    show('landing');
+    exitToHome();
   });
 }
 
