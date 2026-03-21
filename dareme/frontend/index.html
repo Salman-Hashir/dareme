@@ -408,35 +408,7 @@
     min-height: 0;
   }
 
-  /* Video area */
-  .video-area {
-    grid-row: 1 / 2;
-    grid-column: 1 / 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px;
-    background: var(--bg);
-    padding: 12px;
-    gap: 12px;
-  }
-
-  .video-box {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .video-box video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
-  }
+  /* Video area — see group layouts section below */
 
   .video-label {
     position: absolute;
@@ -1387,11 +1359,186 @@
   }
   .exit-btn:hover { background: rgba(255,45,107,0.2); }
 
-  /* ── GROUP VIDEO GRID ── */
-  .video-area.g2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
-  .video-area.g3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-  .video-area.g3 .video-box:first-child { grid-column: 1 / 3; }
-  .video-area.g4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  /* ══════════════════════════════════════
+     VIDEO AREA — ALL LAYOUTS
+  ══════════════════════════════════════ */
+
+  /* Base video area */
+  .video-area {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    display: grid;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg);
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── 1-to-1 LAYOUTS ── */
+  /* Side by side (default) */
+  .video-area.layout-side {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  /* Picture-in-picture */
+  .video-area.layout-pip {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    position: relative;
+  }
+  .video-area.layout-pip .video-box:first-child {
+    grid-column: 1; grid-row: 1;
+    width: 100%; height: 100%;
+  }
+  .video-area.layout-pip .video-box:last-child {
+    position: absolute;
+    width: 28%;
+    aspect-ratio: 4/3;
+    bottom: 12px; right: 12px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    z-index: 10;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  /* Stacked vertically */
+  .video-area.layout-stack {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  /* ── GROUP LAYOUTS ── */
+  /* 2 people in group */
+  .video-area.g2 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  /* 3 people — 2 top + 1 bottom center */
+  .video-area.g3 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .video-area.g3 .video-box:nth-child(1) {
+    grid-column: 1; grid-row: 1;
+  }
+  .video-area.g3 .video-box:nth-child(2) {
+    grid-column: 2; grid-row: 1;
+  }
+  .video-area.g3 .video-box:nth-child(3) {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    max-width: 50%;
+    margin: 0 auto;
+    width: 100%;
+    justify-self: center;
+  }
+
+  /* 4 people — 2x2 grid */
+  .video-area.g4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  /* ── VIDEO BOX BASE ── */
+  .video-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .video-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* ── VIDEO EXPANDED MODE (chat hidden) ── */
+  .chat-layout.video-expanded {
+    grid-template-columns: 1fr 0px;
+  }
+  .chat-layout.video-expanded .sidebar {
+    display: none;
+  }
+  .chat-layout.video-expanded .video-controls {
+    grid-column: 1 / 3;
+  }
+
+  /* ── LAYOUT TOGGLE BUTTON ── */
+  .layout-toggle-btn {
+    width: 36px; height: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .layout-toggle-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  .layout-menu {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    z-index: 100;
+    min-width: 160px;
+  }
+  .layout-toggle-btn.open .layout-menu { display: block; }
+
+  .layout-option {
+    padding: 10px 14px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .layout-option:last-child { border-bottom: none; }
+  .layout-option:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .layout-option.active { color: var(--cyan); background: rgba(0,229,255,0.06); }
+
+  /* ── VIDEO MAXIMIZE BUTTON on sidebar header ── */
+  .video-maximize-btn {
+    width: 28px; height: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
+  .video-maximize-btn:hover { border-color: var(--neon); color: var(--neon); }
+
+  /* ── FULLSCREEN OVERLAY (existing, kept) ── */
 
   /* ── EXPAND GROUP BUTTON ── */
   .expand-btn {
@@ -1638,13 +1785,37 @@
     }
 
     /* Videos — top half, side by side */
-    .video-area {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      padding: 6px;
+    .video-area,
+    .video-area.layout-side,
+    .video-area.layout-stack,
+    .video-area.layout-pip,
+    .video-area.g2,
+    .video-area.g3,
+    .video-area.g4 {
       height: 38vh;
       flex-shrink: 0;
+      padding: 6px;
+      gap: 6px;
+    }
+
+    /* Force side-by-side on mobile for 1-to-1 */
+    .video-area.layout-side,
+    .video-area.layout-pip,
+    .video-area.layout-stack {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr;
+    }
+
+    /* PiP on mobile — small box */
+    .video-area.layout-pip .video-box:last-child {
+      width: 35%;
+      bottom: 8px; right: 8px;
+    }
+
+    /* 3 person mobile */
+    .video-area.g3 .video-box:nth-child(3) {
+      max-width: 60%;
     }
 
     .video-box {
@@ -1850,7 +2021,7 @@
   <div class="chat-layout">
 
     <!-- Videos -->
-    <div class="video-area g2" id="videoArea">
+    <div class="video-area layout-side" id="videoArea">
       <div class="video-box">
         <video id="localVideo" autoplay muted playsinline></video>
         <div class="cam-off-placeholder hidden" id="localPlaceholder">
@@ -1874,10 +2045,22 @@
 
     <!-- Controls -->
     <div class="video-controls">
-      <button class="ctrl-btn" id="micBtn" onclick="toggleMic()" title="Toggle Mic">🎤</button>
-      <button class="ctrl-btn" id="vidBtn" onclick="toggleVideo()" title="Toggle Camera">📷</button>
+      <button class="ctrl-btn" id="micBtn" onclick="toggleMic()" title="Mic">🎤</button>
+      <button class="ctrl-btn" id="vidBtn" onclick="toggleVideo()" title="Camera">📷</button>
       <button class="ctrl-btn" onclick="triggerFileSend()" title="Send File">📁</button>
-      <button class="ctrl-btn" onclick="openFriendsModal()" title="Saved Friends">💚</button>
+      <button class="ctrl-btn" onclick="openFriendsModal()" title="Friends">💚</button>
+
+      <!-- Layout Toggle -->
+      <div class="layout-toggle-btn" id="layoutToggleBtn" onclick="toggleLayoutMenu(event)" title="Layout">
+        ⊞
+        <div class="layout-menu" id="layoutMenu">
+          <div class="layout-option active" id="opt-side" onclick="setLayout('side',event)">◫ Side by Side</div>
+          <div class="layout-option" id="opt-pip"  onclick="setLayout('pip',event)">⧉ Picture in Picture</div>
+          <div class="layout-option" id="opt-stack" onclick="setLayout('stack',event)">⬒ Stacked</div>
+          <div class="layout-option" id="opt-max"  onclick="setLayout('max',event)">⛶ Videos Full</div>
+        </div>
+      </div>
+
       <button class="expand-btn" id="expandBtn" onclick="requestExpand()">➕ ADD STRANGER</button>
       <button class="td-btn" onclick="openTD()">🎲 TRUTH OR DARE</button>
       <button class="next-btn" onclick="nextStranger()">NEXT ▸</button>
@@ -1887,6 +2070,7 @@
     <div class="sidebar">
       <div class="sidebar-header">
         <span class="sidebar-icon">💬</span> Chat
+        <button class="video-maximize-btn" onclick="toggleVideoExpand()" title="Toggle Video/Chat" id="videoMaxBtn">⛶</button>
         <button class="chat-expand-btn" onclick="openExpandedChat()" title="Expand Chat">&#x2922;</button>
       </div>
       <div id="messages"></div>
@@ -2158,10 +2342,22 @@ function initSocket() {
     document.querySelector('.match-sub').textContent = 'Waiting for an open group...';
   });
 
-  // ── WebRTC signaling (1-to-1) ──
+  // ── WebRTC signaling (1-to-1 and group) ──
   socket.on('webrtc-offer', async ({ offer, from }) => {
-    // If from a group member, handle in group system
+    // Group member offer — handled in initGroupSocketEvents
     if (from && groupPeers[from] !== undefined) return;
+    // Group mode — new member connecting
+    if (isInGroup && from && groupPeers[from] === undefined) {
+      await connectToGroupMember(from, false);
+      const pc = groupPeers[from];
+      if (!pc) return;
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('webrtc-answer', { answer, to: from });
+      return;
+    }
+    // 1-to-1
     if (!peerConnection) return;
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await peerConnection.createAnswer();
@@ -2170,7 +2366,12 @@ function initSocket() {
   });
 
   socket.on('webrtc-answer', async ({ answer, from }) => {
-    if (from && groupPeers[from] !== undefined) return;
+    // Group answer
+    if (from && groupPeers[from]) {
+      await groupPeers[from].setRemoteDescription(new RTCSessionDescription(answer));
+      return;
+    }
+    // 1-to-1
     if (!peerConnection) return;
     await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
   });
@@ -2374,6 +2575,15 @@ function enterChat() {
   // Reset group state on each new chat
   isInGroup = false; groupMembers = []; currentRoomId = null;
   groupPeers = {};
+  // Reset layout to default side-by-side
+  currentLayout = 'side';
+  videoExpanded = false;
+  const area = document.getElementById('videoArea');
+  if (area) area.className = 'video-area layout-side';
+  const cl = document.querySelector('.chat-layout');
+  if (cl) cl.classList.remove('video-expanded');
+  const vmb = document.getElementById('videoMaxBtn');
+  if (vmb) { vmb.style.color = ''; vmb.style.borderColor = ''; }
   const gb = document.getElementById('groupBadge');
   if (gb) gb.classList.remove('visible');
   const eb = document.getElementById('expandBtn');
@@ -2621,8 +2831,87 @@ function reportUser() {
 }
 
 // ══════════════════════════════════════
-// 🎥 VIDEO STREAM ATTACH — Black screen fix
+// 📐 VIDEO LAYOUT SYSTEM
 // ══════════════════════════════════════
+let currentLayout = 'side';
+let videoExpanded = false;
+
+const LAYOUTS_1TO1 = ['side','pip','stack','max'];
+const LAYOUT_LABELS = {
+  side : '◫ Side by Side',
+  pip  : '⧉ Picture in Picture',
+  stack: '⬒ Stacked',
+  max  : '⛶ Videos Full'
+};
+
+function toggleLayoutMenu(e) {
+  e.stopPropagation();
+  document.getElementById('layoutToggleBtn').classList.toggle('open');
+}
+
+// Close layout menu when clicking outside
+document.addEventListener('click', () => {
+  const btn = document.getElementById('layoutToggleBtn');
+  if (btn) btn.classList.remove('open');
+});
+
+function setLayout(layout, e) {
+  if (e) e.stopPropagation();
+  currentLayout = layout;
+
+  const area = document.getElementById('videoArea');
+  if (!area) return;
+
+  // Close menu
+  const btn = document.getElementById('layoutToggleBtn');
+  if (btn) btn.classList.remove('open');
+
+  // Update active option
+  LAYOUTS_1TO1.forEach(l => {
+    const opt = document.getElementById('opt-' + l);
+    if (opt) opt.classList.toggle('active', l === layout);
+  });
+
+  // Apply layout
+  if (isInGroup) {
+    // Group — always use gN layout
+    applyGroupLayout(Math.min(groupMembers.length, 4)); //updated;
+    return;
+  }
+
+  // 1-to-1 layouts
+  const chatLayout = document.querySelector('.chat-layout');
+
+  if (layout === 'max') {
+    // Hide chat, full video
+    area.className = 'video-area layout-side';
+    if (chatLayout) chatLayout.classList.add('video-expanded');
+    videoExpanded = true;
+    const vmb = document.getElementById('videoMaxBtn');
+    if (vmb) { vmb.style.color = 'var(--neon)'; vmb.style.borderColor = 'rgba(255,45,107,0.4)'; }
+  } else {
+    area.className = 'video-area layout-' + layout;
+    if (chatLayout) chatLayout.classList.remove('video-expanded');
+    videoExpanded = false;
+    const vmb = document.getElementById('videoMaxBtn');
+    if (vmb) { vmb.style.color = ''; vmb.style.borderColor = ''; }
+  }
+}
+
+function toggleVideoExpand() {
+  if (videoExpanded) {
+    setLayout('side');
+  } else {
+    setLayout('max');
+  }
+}
+
+// Update group video grid layout
+function applyGroupLayout(count) {
+  const area = document.getElementById('videoArea');
+  if (!area) return;
+  area.className = 'video-area g' + Math.min(count, 4);
+}
 function attachVideoStream(videoEl, stream) {
   if (!videoEl || !stream) return;
 
@@ -2718,7 +3007,7 @@ function exitToHome() {
   // Reset video area back to default 2-person layout
   const va = document.getElementById('videoArea');
   if (va) {
-    va.className = 'video-area g2';
+    va.className = 'video-area layout-side';
     va.innerHTML = `
       <div class="video-box">
         <video id="localVideo" autoplay muted playsinline></video>
@@ -2932,7 +3221,7 @@ async function onMemberJoined(newMemberId, allMembers) {
   addSystemMsg(`👥 A new stranger joined! (${allMembers.length} people now)`);
   addGroupVideoBox(newMemberId);
   const area = document.getElementById('videoArea');
-  if (area) area.className = 'video-area g' + Math.min(allMembers.length, 4);
+  if (area) applyGroupLayout(Math.min(allMembers.length, 4)); //updated;
   await connectToGroupMember(newMemberId, true);
   updateGroupUI();
 }
@@ -2953,7 +3242,7 @@ async function onGroupJoined(roomId, members) {
 function buildGroupVideoGrid(members) {
   const area = document.getElementById('videoArea');
   if (!area) return;
-  area.className = 'video-area g' + Math.min(members.length, 4);
+  applyGroupLayout(Math.min(members.length, 4)); //updated;
   area.innerHTML = '';
   members.forEach(memberId => {
     if (memberId === socket.id) {
@@ -2980,14 +3269,14 @@ function addGroupVideoBox(memberId) {
     <button class="fs-btn" onclick="openFullscreen('${memberId}')">&#x26F6;</button>
     <button class="kick-btn" onclick="startKickVote('${memberId}')">VOTE KICK</button>`;
   area.appendChild(d);
-  area.className = 'video-area g' + Math.min(area.children.length, 4);
+  applyGroupLayout(Math.min(area.children.length, 4)); //updated;
 }
 
 function removeGroupVideoBox(memberId) {
   const box = document.getElementById('vbox-' + memberId);
   if (box) box.remove();
   const area = document.getElementById('videoArea');
-  if (area) area.className = 'video-area g' + Math.min(area.children.length, 4);
+  if (area) applyGroupLayout(Math.min(area.children.length, 4)); //updated;
 }
 
 async function connectToGroupMember(memberId, initiator) {
@@ -3119,7 +3408,7 @@ function initGroupSocketEvents() {
     addSystemMsg(`👥 A stranger joined! (${members.length}/4 people)`);
     addGroupVideoBox(newMember);
     const area = document.getElementById('videoArea');
-    if (area) area.className = 'video-area g' + Math.min(members.length, 4);
+    if (area) applyGroupLayout(Math.min(members.length, 4)); //updated;
     await connectToGroupMember(newMember, true);
     updateGroupUI();
   });
