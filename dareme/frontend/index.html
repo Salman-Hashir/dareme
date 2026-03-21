@@ -2323,9 +2323,9 @@
   <div class="popup-card">
     <span class="popup-icon">👋</span>
     <div class="popup-title">Stranger Left</div>
-    <div class="popup-sub">They disconnected. Want to find someone new or go back home?</div>
+    <div class="popup-sub">Finding a new stranger in <span id="autoReconnectCount">5</span>s...</div>
     <div class="popup-actions">
-      <button class="popup-btn primary" onclick="closePopupAndNext()">FIND NEW ▸</button>
+      <button class="popup-btn primary" onclick="closePopupAndNext()">FIND NOW ▸</button>
       <button class="popup-btn secondary" onclick="closePopupAndHome()">GO HOME</button>
     </div>
   </div>
@@ -2470,14 +2470,37 @@ function initSocket() {
         socket.emit('webrtc-answer', { answer, to: from });
       } catch(e) { console.error('Group offer error:', e); }
     } else {
-      // 1-to-1 offer
-      if (!peerConnection) return;
+      // 1-to-1 offer — receiver handles this
+      if (!peerConnection) {
+        // peerConnection might not be set up yet — create it now
+        peerConnection = new RTCPeerConnection(RTC_CONFIG);
+        // Add local tracks
+        if (localStream) {
+          localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+        }
+        // Setup handlers
+        peerConnection.ontrack = (event) => {
+          if (!event.streams || !event.streams[0]) return;
+          const rv = document.getElementById('remoteVideo');
+          const rp = document.getElementById('remotePlaceholder');
+          if (rv) { attachVideoStream(rv, event.streams[0]); rv.style.display = 'block'; }
+          if (rp) rp.style.display = 'none';
+          console.log('🎥 Remote track received (receiver path)');
+        };
+        peerConnection.onicecandidate = (e) => {
+          if (e.candidate && socket) socket.emit('ice-candidate', { candidate: e.candidate });
+        };
+        peerConnection.onconnectionstatechange = () => {
+          if (peerConnection && peerConnection.connectionState === 'connected') showToast('Video connected! 🎥');
+        };
+      }
       try {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
-        socket.emit('webrtc-answer', { answer }); // no 'to'
-      } catch(e) { console.error('1-to-1 offer error:', e); }
+        socket.emit('webrtc-answer', { answer });
+        console.log('📤 Answer sent');
+      } catch(e) { console.error('1-to-1 answer error:', e); }
     }
   });
 
@@ -2522,18 +2545,20 @@ async function setupWebRTC(role) {
   closePeerConnection();
   peerConnection = new RTCPeerConnection(RTC_CONFIG);
 
-  // Add local tracks
+  // BOTH sides add their local tracks immediately
+  // This is critical — receiver must add tracks before answering
   if (localStream) {
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream);
     });
   }
 
-  // DataChannel for file transfer
+  // DataChannel
   setupDataChannel();
 
-  // Remote stream → show video
+  // When we receive remote stream — show on screen
   peerConnection.ontrack = (event) => {
+    console.log('🎥 Got remote track:', event.track.kind);
     if (!event.streams || !event.streams[0]) return;
     const rv = document.getElementById('remoteVideo');
     const rp = document.getElementById('remotePlaceholder');
@@ -2544,32 +2569,41 @@ async function setupWebRTC(role) {
     if (rp) rp.style.display = 'none';
   };
 
-  // ICE candidates — no 'to' for 1-to-1
+  // ICE candidates → send to partner
   peerConnection.onicecandidate = (event) => {
     if (event.candidate && socket) {
       socket.emit('ice-candidate', { candidate: event.candidate });
+      console.log('🧊 ICE candidate sent');
     }
+  };
+
+  // Log ICE state changes
+  peerConnection.oniceconnectionstatechange = () => {
+    console.log('ICE state:', peerConnection.iceConnectionState);
   };
 
   // Connection state
   peerConnection.onconnectionstatechange = () => {
-    const state = peerConnection ? peerConnection.connectionState : 'closed';
-    console.log('WebRTC:', state);
-    if (state === 'connected') showToast('Video connected! 🎥');
-    if (state === 'failed') {
-      showToast('Video connection failed — trying to reconnect...');
-      // Restart ICE
-      if (peerConnection && myRole === 'initiator') {
-        peerConnection.restartIce();
-        peerConnection.createOffer({ iceRestart: true }).then(offer => {
-          peerConnection.setLocalDescription(offer);
-          socket.emit('webrtc-offer', { offer });
-        }).catch(() => {});
+    if (!peerConnection) return;
+    const state = peerConnection.connectionState;
+    console.log('WebRTC state:', state);
+    if (state === 'connected') {
+      showToast('Video connected! 🎥');
+    }
+    if (state === 'failed' || state === 'disconnected') {
+      // Try ICE restart if initiator
+      if (myRole === 'initiator' && peerConnection) {
+        console.log('🔄 Restarting ICE...');
+        peerConnection.createOffer({ iceRestart: true })
+          .then(offer => peerConnection.setLocalDescription(offer))
+          .then(() => socket.emit('webrtc-offer', { offer: peerConnection.localDescription }))
+          .catch(e => console.error('ICE restart failed:', e));
       }
     }
   };
 
-  // Initiator sends offer — NO 'to' field for 1-to-1
+  // Only INITIATOR creates and sends offer
+  // RECEIVER waits for offer via socket event
   if (role === 'initiator') {
     try {
       const offer = await peerConnection.createOffer({
@@ -2577,11 +2611,14 @@ async function setupWebRTC(role) {
         offerToReceiveVideo: true
       });
       await peerConnection.setLocalDescription(offer);
-      socket.emit('webrtc-offer', { offer }); // no 'to' = server routes to pair partner
+      socket.emit('webrtc-offer', { offer });
+      console.log('📤 Offer sent');
     } catch(e) {
       console.error('Offer failed:', e);
     }
   }
+  // Receiver: do nothing here — waits for 'webrtc-offer' socket event
+  // The socket handler will call setRemoteDescription + createAnswer
 }
 
 function closePeerConnection() {
@@ -2735,6 +2772,8 @@ function enterChat() {
 function nextStranger() {
   clearInterval(chatTimer);
   clearTimeout(aiMatchTimer);
+  clearTimeout(autoReconnectTimer);
+  clearInterval(autoReconnectInterval);
   closePeerConnection();
 
   // Stop AI
@@ -2961,19 +3000,51 @@ function reportUser() {
 }
 
 // ══════════════════════════════════════
-// 👋 PARTNER LEFT POPUP
+// 👋 PARTNER LEFT POPUP + AUTO-RECONNECT
 // ══════════════════════════════════════
+let autoReconnectTimer = null;
+let autoReconnectInterval = null;
+
 function showPartnerLeftPopup() {
   addSystemMsg('Stranger disconnected.');
   document.getElementById('partnerLeftPopup').classList.add('show');
+
+  // Auto-reconnect countdown from 5
+  let count = 5;
+  const countEl = document.getElementById('autoReconnectCount');
+  if (countEl) countEl.textContent = count;
+
+  clearInterval(autoReconnectInterval);
+  clearTimeout(autoReconnectTimer);
+
+  autoReconnectInterval = setInterval(() => {
+    count--;
+    if (countEl) countEl.textContent = count;
+    if (count <= 0) {
+      clearInterval(autoReconnectInterval);
+    }
+  }, 1000);
+
+  // Auto-find after 5s
+  autoReconnectTimer = setTimeout(() => {
+    const popup = document.getElementById('partnerLeftPopup');
+    if (popup && popup.classList.contains('show')) {
+      popup.classList.remove('show');
+      nextStranger();
+    }
+  }, 5000);
 }
 
 function closePopupAndNext() {
+  clearTimeout(autoReconnectTimer);
+  clearInterval(autoReconnectInterval);
   document.getElementById('partnerLeftPopup').classList.remove('show');
   nextStranger();
 }
 
 function closePopupAndHome() {
+  clearTimeout(autoReconnectTimer);
+  clearInterval(autoReconnectInterval);
   document.getElementById('partnerLeftPopup').classList.remove('show');
   exitToHome();
 }
@@ -3129,6 +3200,8 @@ function exitToHome() {
   // Stop timers
   clearInterval(chatTimer);
   clearTimeout(aiMatchTimer);
+  clearTimeout(autoReconnectTimer);
+  clearInterval(autoReconnectInterval);
 
   // Stop AI mode
   isAIMode = false;
